@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Finanças — Josiel & Rayane</title>
+<style>
+  :root {
+    --primary: #6c63ff;
+    --primary-dark: #5a52d5;
+    --secondary: #ff6584;
+    --bg: #0f0f1a;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --card: #1e1e35;
+    --card2: #252545;
+    --text: #e8e8f0;
+    --text2: #9999bb;
+    --green: #00d4aa;
+    --red: #ff4d6d;
+    --yellow: #ffd166;
+    --blue: #4ecdc4;
+    --orange: #ff9f43;
+    --border: rgba(108,99,255,0.2);
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  /* HEADER */
+  .header { background:linear-gradient(135deg,var(--bg2),var(--bg3)); padding:20px 16px 16px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+  .header-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .header h1 { font-size:1.2rem; font-weight:700; background:linear-gradient(90deg,var(--primary),var(--secondary)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header-date { font-size:0.75rem; color:var(--text2); }
+  .mes-nav { display:flex; align-items:center; gap:12px; margin-top:8px; }
+  .mes-nav button { background:var(--card); border:1px solid var(--border); color:var(--text); width:32px; height:32px; border-radius:50%; font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .mes-nav button:active { background:var(--primary); }
+  .mes-atual { font-size:1rem; font-weight:600; color:var(--text); flex:1; text-align:center; }
+
+  /* NAV TABS */
+  .nav-tabs { display:flex; background:var(--bg2); border-bottom:1px solid var(--border); overflow-x:auto; scrollbar-width:none; }
+  .nav-tabs::-webkit-scrollbar { display:none; }
+  .nav-tab { flex:0 0 auto; padding:12px 16px; font-size:0.8rem; font-weight:600; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; transition:all .2s; }
+  .nav-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+
+  /* CONTENT */
+  .content { padding:16px; max-width:480px; margin:0 auto; }
+  .tab-page { display:none; }
+  .tab-page.active { display:block; }
+
+  /* CARDS */
+  .card { background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; border:1px solid var(--border); box-shadow:var(--shadow); }
+  .card-title { font-size:0.75rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .card-title .icon { font-size:1rem; }
+
+  /* SALDO GRID */
+  .saldo-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+  .saldo-card { background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border); text-align:center; }
+  .saldo-card .label { font-size:0.7rem; color:var(--text2); margin-bottom:4px; }
+  .saldo-card .value { font-size:1.3rem; font-weight:700; }
+  .saldo-card.entrada .value { color:var(--green); }
+  .saldo-card.saida .value { color:var(--red); }
+  .saldo-card.saldo .value { color:var(--primary); }
+  .saldo-card.credito .value { color:var(--yellow); }
+  .saldo-card.full { grid-column:1/-1; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin:8px 0; }
+  .progress-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text2); margin-bottom:4px; }
+  .progress-bar { height:8px; background:var(--bg); border-radius:4px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:4px; transition:width .5s ease; }
+  .progress-fill.green { background:var(--green); }
+  .progress-fill.yellow { background:var(--yellow); }
+  .progress-fill.red { background:var(--red); }
+
+  /* LISTA TRANSAÇÕES */
+  .trans-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .trans-item:last-child { border-bottom:none; }
+  .trans-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+  .trans-icon.entrada { background:rgba(0,212,170,0.15); }
+  .trans-icon.saida { background:rgba(255,77,109,0.15); }
+  .trans-icon.credito { background:rgba(255,209,102,0.15); }
+  .trans-info { flex:1; min-width:0; }
+  .trans-desc { font-size:0.9rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .trans-meta { font-size:0.72rem; color:var(--text2); margin-top:2px; }
+  .trans-valor { text-align:right; flex-shrink:0; }
+  .trans-valor .amount { font-size:0.95rem; font-weight:700; }
+  .trans-valor .amount.pos { color:var(--green); }
+  .trans-valor .amount.neg { color:var(--red); }
+  .trans-valor .amount.cred { color:var(--yellow); }
+  .trans-valor .date { font-size:0.7rem; color:var(--text2); }
+
+  /* SALÁRIOS */
+  .salary-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .salary-row:last-child { border-bottom:none; }
+  .salary-person { display:flex; align-items:center; gap:10px; }
+  .salary-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:700; }
+  .av-j { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); }
+  .av-r { background:linear-gradient(135deg,var(--secondary),#c94870); }
+  .salary-name { font-size:0.85rem; font-weight:600; }
+  .salary-sub { font-size:0.7rem; color:var(--text2); }
+  .salary-value { font-size:1.1rem; font-weight:700; color:var(--green); }
+
+  /* CONTAS */
+  .conta-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .conta-item:last-child { border-bottom:none; }
+  .conta-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .conta-info { flex:1; }
+  .conta-nome { font-size:0.88rem; font-weight:500; }
+  .conta-venc { font-size:0.7rem; color:var(--text2); }
+  .conta-valor { font-size:0.95rem; font-weight:700; }
+  .conta-valor.pago { color:var(--green); }
+  .conta-valor.pendente { color:var(--yellow); }
+  .conta-valor.atrasado { color:var(--red); }
+  .conta-status { font-size:0.65rem; font-weight:600; padding:2px 6px; border-radius:20px; }
+  .status-pago { background:rgba(0,212,170,0.15); color:var(--green); }
+  .status-pendente { background:rgba(255,209,102,0.15); color:var(--yellow); }
+  .status-atrasado { background:rgba(255,77,109,0.15); color:var(--red); }
+
+  /* CARTÃO CRÉDITO */
+  .credit-card { background:linear-gradient(135deg,#1a1a4e,#2d2d7e); border-radius:18px; padding:20px; margin-bottom:12px; border:1px solid rgba(108,99,255,0.4); position:relative; overflow:hidden; }
+  .credit-card::before { content:''; position:absolute; width:200px; height:200px; background:rgba(108,99,255,0.1); border-radius:50%; top:-80px; right:-60px; }
+  .credit-card::after { content:''; position:absolute; width:150px; height:150px; background:rgba(255,101,132,0.08); border-radius:50%; bottom:-50px; left:-30px; }
+  .cc-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+  .cc-label { font-size:0.7rem; color:rgba(255,255,255,0.6); }
+  .cc-bank { font-size:0.9rem; font-weight:700; color:rgba(255,255,255,0.9); }
+  .cc-chip { font-size:1.5rem; }
+  .cc-num { font-size:0.85rem; letter-spacing:0.2em; color:rgba(255,255,255,0.7); margin-bottom:16px; font-family:monospace; }
+  .cc-bottom { display:flex; justify-content:space-between; align-items:flex-end; }
+  .cc-holder { font-size:0.78rem; color:rgba(255,255,255,0.8); font-weight:600; }
+  .cc-limit { text-align:right; }
+  .cc-limit .ll { font-size:0.65rem; color:rgba(255,255,255,0.5); }
+  .cc-limit .lv { font-size:1.1rem; font-weight:700; color:#fff; }
+
+  /* FAB */
+  .fab { position:fixed; bottom:24px; right:20px; width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; color:#fff; font-size:1.5rem; cursor:pointer; box-shadow:0 4px 20px rgba(108,99,255,0.5); display:flex; align-items:center; justify-content:center; z-index:200; transition:transform .2s; }
+  .fab:active { transform:scale(0.92); }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:300; display:none; align-items:flex-end; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg2); border-radius:24px 24px 0 0; padding:24px 20px 32px; width:100%; max-width:480px; max-height:90vh; overflow-y:auto; }
+  .modal-handle { width:40px; height:4px; background:var(--card2); border-radius:2px; margin:0 auto 20px; }
+  .modal h2 { font-size:1.1rem; font-weight:700; margin-bottom:20px; }
+  .modal-btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .modal-type { background:var(--card); border:2px solid var(--border); border-radius:12px; padding:12px; text-align:center; cursor:pointer; transition:all .2s; }
+  .modal-type.active { border-color:var(--primary); background:rgba(108,99,255,0.1); }
+  .modal-type .mt-icon { font-size:1.5rem; margin-bottom:4px; }
+  .modal-type .mt-label { font-size:0.8rem; font-weight:600; }
+  .form-group { margin-bottom:14px; }
+  .form-group label { font-size:0.78rem; color:var(--text2); margin-bottom:6px; display:block; }
+  .form-group input, .form-group select, .form-group textarea { width:100%; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px; color:var(--text); font-size:0.95rem; outline:none; -webkit-appearance:none; }
+  .form-group input:focus, .form-group select:focus { border-color:var(--primary); }
+  .form-group select option { background:var(--card); }
+  .btn-save { width:100%; background:linear-gradient(135deg,var(--primary),var(--primary-dark)); border:none; color:#fff; padding:14px; border-radius:12px; font-size:1rem; font-weight:700; cursor:pointer; margin-top:4px; }
+  .btn-save:active { opacity:0.9; }
+
+  /* SECTION HEADER */
+  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .section-header h3 { font-size:0.95rem; font-weight:700; }
+  .btn-small { background:var(--card2); border:1px solid var(--border); color:var(--text2); padding:6px 12px; border-radius:20px; font-size:0.75rem; cursor:pointer; }
+
+  /* VALES */
+  .vale-card { background:var(--card); border-radius:14px; padding:14px; border:1px solid var(--border); margin-bottom:10px; }
+  .vale-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .vale-name { font-size:0.9rem; font-weight:700; }
+  .vale-badge { font-size:0.7rem; font-weight:600; padding:3px 10px; border-radius:20px; }
+  .badge-ifood { background:rgba(255,69,0,0.2); color:#ff4500; }
+  .badge-coper { background:rgba(78,205,196,0.2); color:var(--blue); }
+  .badge-custom { background:rgba(108,99,255,0.2); color:var(--primary); }
+
+  /* EMPTY STATE */
+  .empty { text-align:center; padding:40px 20px; color:var(--text2); }
+  .empty .empty-icon { font-size:3rem; margin-bottom:12px; opacity:0.5; }
+  .empty p { font-size:0.85rem; }
+
+  /* TAGS */
+  .tag { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; padding:2px 8px; border-radius:20px; margin:2px; }
+  .tag-compra { background:rgba(255,77,109,0.15); color:var(--red); }
+  .tag-conta { background:rgba(255,209,102,0.15); color:var(--yellow); }
+  .tag-lazer { background:rgba(108,99,255,0.15); color:var(--primary); }
+  .tag-alimentacao { background:rgba(0,212,170,0.15); color:var(--green); }
+  .tag-saude { background:rgba(255,159,67,0.15); color:var(--orange); }
+
+  /* DELETE btn */
+  .del-btn { background:none; border:none; color:var(--red); opacity:0.5; font-size:1rem; cursor:pointer; padding:4px; }
+  .del-btn:active { opacity:1; }
+
+  /* RESUMO */
+  .resumo-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+  .resumo-item:last-child { border-bottom:none; }
+  .resumo-cat { display:flex; align-items:center; gap:8px; font-size:0.85rem; }
+  .resumo-circle { width:10px; height:10px; border-radius:50%; }
+  .resumo-val { font-size:0.9rem; font-weight:600; }
+
+  /* BADGE COUNT */
+  .badge-count { background:var(--red); color:#fff; font-size:0.65rem; font-weight:700; border-radius:10px; padding:1px 5px; margin-left:4px; }
+
+  /* SCROLL */
+  .scroll-list { max-height:400px; overflow-y:auto; scrollbar-width:none; }
+  .scroll-list::-webkit-scrollbar { display:none; }
+
+  /* TOGGLE */
+  .toggle-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; }
+  .toggle-row span { font-size:0.85rem; }
+  .toggle { width:44px; height:24px; background:var(--card2); border-radius:12px; position:relative; cursor:pointer; transition:background .2s; }
+  .toggle.on { background:var(--green); }
+  .toggle::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:2px; left:2px; transition:left .2s; }
+  .toggle.on::after { left:22px; }
+
+  /* CONFIGURAR */
+  .config-section { margin-bottom:20px; }
+  .config-title { font-size:0.8rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px; }
+
+  /* Scrollbar global */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <h1>💰 Josiel & Rayane</h1>
+    <span class="header-date" id="headerDate"></span>
+  </div>
+  <div class="mes-nav">
+    <button onclick="mudarMes(-1)">‹</button>
+    <span class="mes-atual" id="mesAtual"></span>
+    <button onclick="mudarMes(1)">›</button>
+  </div>
+</div>
+
+<!-- NAV TABS -->
+<div class="nav-tabs">
+  <div class="nav-tab active" onclick="showTab('visao')">📊 Visão Geral</div>
+  <div class="nav-tab" onclick="showTab('transacoes')">💸 Transações</div>
+  <div class="nav-tab" onclick="showTab('contas')">📋 Contas</div>
+  <div class="nav-tab" onclick="showTab('credito')">💳 Crédito</div>
+  <div class="nav-tab" onclick="showTab('vales')">🎟️ Vales</div>
+  <div class="nav-tab" onclick="showTab('config')">⚙️ Config</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- VISÃO GERAL -->
+  <div class="tab-page active" id="tab-visao">
+    <div class="saldo-grid">
+      <div class="saldo-card entrada">
+        <div class="label">Entradas</div>
+        <div class="value" id="totalEntradas">R$ 0</div>
+      </div>
+      <div class="saldo-card saida">
+        <div class="label">Saídas</div>
+        <div class="value" id="totalSaidas">R$ 0</div>
+      </div>
+      <div class="saldo-card saldo full">
+        <div class="label">Saldo do Mês</div>
+        <div class="value" id="saldoMes">R$ 0</div>
+      </div>
+    </div>
+
+    <!-- Salários -->
+    <div class="card">
+      <div class="card-title"><span class="icon">💼</span> Salários & Renda</div>
+      <div id="salariosList"></div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border); display:flex; justify-content:space-between;">
+        <span style="font-size:0.8rem; color:var(--text2);">Total de renda</span>
+        <span style="font-size:1rem; font-weight:700; color:var(--green);" id="totalRenda">R$ 0</span>
+      </div>
+      <div style="margin-top:6px; display:flex; justify-content:space-between;">
+        <span style="font-size:0.75rem; color:var(--text2);">🗓️ Previsão 5° dia útil</span>
+        <span style="font-size:0.8rem; color:var(--text2);" id="dataUtilLabel">—</span>
+      </div>
+    </div>
+
+    <!-- Vales -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🎟️</span> Vales do Mês</div>
+      <div id="valesResumo"></div>
+    </div>
+
+    <!-- Contas pendentes -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⚠️</span> Contas Pendentes</div>
+      <div id="contasPendentesResumo"></div>
+    </div>
+
+    <!-- Gasto por categoria -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📈</span> Gastos por Categoria</div>
+      <div id="categoriasResumo"></div>
+    </div>
+  </div>
+
+  <!-- TRANSAÇÕES -->
+  <div class="tab-page" id="tab-transacoes">
+    <div class="section-header">
+      <h3>Lançamentos</h3>
+      <div style="display:flex;gap:8px;">
+        <select id="filtroTipo" onchange="renderTransacoes()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:20px;font-size:0.75rem;outline:none;">
+          <option value="">Todos</option>
+          <option value="entrada">Entradas</option>
+          <option value="saida">Saídas</option>
+          <option value="credito">Crédito</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div id="transacoesList" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <!-- CONTAS -->
+  <div class="tab-page" id="tab-contas">
+    <div class="section-header">
+      <h3>Contas a Pagar</h3>
+      <button class="btn-small" onclick="abrirModalConta()">+ Nova Conta</button>
+    </div>
+    <div id="contasList"></div>
+
+    <div style="margin-top:16px;">
+      <div class="card">
+        <div class="card-title"><span class="icon">📊</span> Resumo do Mês</div>
+        <div class="resumo-item">
+          <span class="resumo-cat"><span class="resumo-circle" style="background:var(--green)"></span>Pagas</span>
+          <span class="resumo-val" id="totalPago" style="color:var(--green)">R$ 0</span>
+        </div>
+        <div class="resumo-item">
+          <span class="resumo-cat"><span class="resumo-circle" style="background:var(--yellow)"></span>Pendentes</span>
+          <span class="resumo-val" id="totalPendente" style="color:var(--yellow)">R$ 0</span>
+        </div>
+        <div class="resumo-item">
+          <span class="resumo-cat"><span class="resumo-circle" style="background:var(--red)"></span>Atrasadas</span>
+          <span class="resumo-val" id="totalAtrasado" style="color:var(--red)">R$ 0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRÉDITO -->
+  <div class="tab-page" id="tab-credito">
+    <!-- Cartão visual -->
+    <div class="credit-card">
+      <div class="cc-top">
+        <div>
+          <div class="cc-label">CARTÃO DE CRÉDITO</div>
+          <div class="cc-bank" id="ccBankName">Meu Cartão</div>
+        </div>
+        <div class="cc-chip">💳</div>
+      </div>
+      <div class="cc-num">•••• •••• •••• <span id="cc4digits">0000</span></div>
+      <div class="cc-bottom">
+        <div>
+          <div class="cc-label">TITULAR</div>
+          <div class="cc-holder">Josiel & Rayane</div>
+        </div>
+        <div class="cc-limit">
+          <div class="ll">LIMITE DISPONÍVEL</div>
+          <div class="lv" id="ccLimiteDisp">R$ 0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="saldo-grid">
+      <div class="saldo-card credito">
+        <div class="label">Fatura Atual</div>
+        <div class="value" id="faturaAtual">R$ 0</div>
+      </div>
+      <div class="saldo-card">
+        <div class="label">Vencimento</div>
+        <div class="value" style="color:var(--blue);font-size:1rem;" id="ccVencimento">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span> Uso do Limite</div>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span id="limiteUsadoLabel">R$ 0 usado</span>
+          <span id="limiteTotalLabel">de R$ 0</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="limiteFill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">💸</span> Lançamentos no Crédito</div>
+      <div id="creditoList" class="scroll-list"></div>
+    </div>
+  </div>
+
+  <!-- VALES -->
+  <div class="tab-page" id="tab-vales">
+    <div class="section-header">
+      <h3>Vales & Benefícios</h3>
+      <button class="btn-small" onclick="abrirModalVale()">+ Novo Vale</button>
+    </div>
+    <div id="valesList"></div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="tab-page" id="tab-config">
+    <div class="card config-section">
+      <div class="config-title">💼 Salários</div>
+      <div class="form-group">
+        <label>Salário do Josiel (R$)</label>
+        <input type="number" id="cfgSalarioJosiel" placeholder="0,00" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>Salário da Rayane (R$)</label>
+        <input type="number" id="cfgSalarioRayane" placeholder="0,00" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="card config-section">
+      <div class="config-title">💳 Cartão de Crédito</div>
+      <div class="form-group">
+        <label>Nome do Banco/Cartão</label>
+        <input type="text" id="cfgCcBanco" placeholder="Ex: Nubank">
+      </div>
+      <div class="form-group">
+        <label>4 últimos dígitos</label>
+        <input type="text" id="cfgCc4dig" maxlength="4" placeholder="0000" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label>Limite total (R$)</label>
+        <input type="number" id="cfgCcLimite" placeholder="0,00" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>Dia de vencimento</label>
+        <input type="number" id="cfgCcVencimento" placeholder="Ex: 15" min="1" max="31" inputmode="numeric">
+      </div>
+    </div>
+
+    <button class="btn-save" onclick="salvarConfig()">💾 Salvar Configurações</button>
+    <br><br>
+    <button class="btn-save" style="background:linear-gradient(135deg,var(--red),#c0392b);margin-top:8px;" onclick="confirmarReset()">🗑️ Resetar Mês</button>
+  </div>
+
+</div><!-- /content -->
+
+<!-- FAB -->
+<button class="fab" onclick="abrirModal()">+</button>
+
+<!-- MODAL LANÇAMENTO -->
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalTitle">Novo Lançamento</h2>
+    <div class="modal-btns">
+      <div class="modal-type active" id="btn-entrada" onclick="setTipo('entrada')">
+        <div class="mt-icon">⬆️</div>
+        <div class="mt-label" style="color:var(--green)">Entrada</div>
+      </div>
+      <div class="modal-type" id="btn-saida" onclick="setTipo('saida')">
+        <div class="mt-icon">⬇️</div>
+        <div class="mt-label" style="color:var(--red)">Saída</div>
+      </div>
+      <div class="modal-type" id="btn-credito" onclick="setTipo('credito')">
+        <div class="mt-icon">💳</div>
+        <div class="mt-label" style="color:var(--yellow)">Crédito</div>
+      </div>
+      <div class="modal-type" id="btn-conta" onclick="setTipo('conta')">
+        <div class="mt-icon">📋</div>
+        <div class="mt-label" style="color:var(--blue)">Conta</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <input type="text" id="fDesc" placeholder="Ex: Supermercado, Aluguel...">
+    </div>
+    <div class="form-group">
+      <label>Valor (R$)</label>
+      <input type="number" id="fValor" placeholder="0,00" inputmode="decimal" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Categoria</label>
+      <select id="fCategoria">
+        <option value="alimentacao">🍔 Alimentação</option>
+        <option value="compras">🛍️ Compras</option>
+        <option value="conta">📋 Conta/Serviço</option>
+        <option value="transporte">🚗 Transporte</option>
+        <option value="saude">💊 Saúde</option>
+        <option value="lazer">🎉 Lazer</option>
+        <option value="educacao">📚 Educação</option>
+        <option value="outros">📦 Outros</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quem pagou?</label>
+      <select id="fPessoa">
+        <option value="josiel">Josiel</option>
+        <option value="rayane">Rayane</option>
+        <option value="conjunto">Conjunto</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Data</label>
+      <input type="date" id="fData">
+    </div>
+    <!-- campos extra para conta -->
+    <div id="extraConta" style="display:none">
+      <div class="form-group">
+        <label>Vencimento</label>
+        <input type="date" id="fVencimento">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="fStatusConta">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+          <option value="atrasado">Atrasado</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-save" onclick="salvarLancamento()">✅ Salvar</button>
+  </div>
+</div>
+
+<!-- MODAL VALE -->
+<div class="modal-overlay" id="modalValeOverlay" onclick="fecharModalVale(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Novo Vale / Benefício</h2>
+    <div class="form-group">
+      <label>Nome</label>
+      <input type="text" id="vNome" placeholder="Ex: Vale Alimentação">
+    </div>
+    <div class="form-group">
+      <label>Pessoa</label>
+      <select id="vPessoa">
+        <option value="josiel">Josiel</option>
+        <option value="rayane">Rayane</option>
+        <option value="conjunto">Conjunto</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo</label>
+      <select id="vTipo">
+        <option value="ifood">iFood</option>
+        <option value="coper">Coper</option>
+        <option value="vt">Vale Transporte</option>
+        <option value="va">Vale Alimentação</option>
+        <option value="custom">Outro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Valor (R$)</label>
+      <input type="number" id="vValor" placeholder="0,00" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label>Observação (opcional)</label>
+      <input type="text" id="vObs" placeholder="Ex: referente à comissão de maio">
+    </div>
+    <button class="btn-save" onclick="salvarVale()">✅ Salvar</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = JSON.parse(localStorage.getItem('financas_jr') || '{}');
+if(!state.transacoes) state.transacoes = [];
+if(!state.contas) state.contas = [];
+if(!state.vales) state.vales = [];
+if(!state.config) state.config = { salarioJosiel:0, salarioRayane:0, ccBanco:'Meu Cartão', cc4dig:'0000', ccLimite:0, ccVencimento:'' };
+
+let mesAtivo = new Date().getMonth();
+let anoAtivo = new Date().getFullYear();
+let tipoAtual = 'entrada';
+
+function save() { localStorage.setItem('financas_jr', JSON.stringify(state)); }
+
+// ===== UTILS =====
+const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const cats = { alimentacao:{label:'Alimentação',color:'#00d4aa'}, compras:{label:'Compras',color:'#ff4d6d'}, conta:{label:'Conta/Serviço',color:'#ffd166'}, transporte:{label:'Transporte',color:'#4ecdc4'}, saude:{label:'Saúde',color:'#ff9f43'}, lazer:{label:'Lazer',color:'#6c63ff'}, educacao:{label:'Educação',color:'#a29bfe'}, outros:{label:'Outros',color:'#636e72'} };
+
+function fmt(v) { return 'R$ ' + parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtShort(v) { v=parseFloat(v||0); if(v>=1000) return 'R$'+Math.round(v/100)/10+'k'; return fmt(v); }
+
+function filtrarMes(lista, campo='data') {
+  return lista.filter(i => {
+    const d = new Date(i[campo]||i.data||'');
+    return d.getMonth()===mesAtivo && d.getFullYear()===anoAtivo;
+  });
+}
+
+function calcular5DiaUtil(mes, ano) {
+  let count=0, d=new Date(ano,mes,1);
+  while(count<5){ if(d.getDay()!==0&&d.getDay()!==6) count++; if(count<5) d.setDate(d.getDate()+1); }
+  return d.toLocaleDateString('pt-BR');
+}
+
+// ===== HEADER =====
+function updateHeader() {
+  document.getElementById('mesAtual').textContent = meses[mesAtivo] + ' ' + anoAtivo;
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+  document.getElementById('dataUtilLabel').textContent = calcular5DiaUtil(mesAtivo, anoAtivo);
+}
+
+function mudarMes(d) {
+  mesAtivo += d;
+  if(mesAtivo<0){mesAtivo=11;anoAtivo--;}
+  if(mesAtivo>11){mesAtivo=0;anoAtivo++;}
+  updateHeader();
+  renderAll();
+}
+
+// ===== TABS =====
+function showTab(id) {
+  document.querySelectorAll('.tab-page').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  renderAll();
+}
+
+// ===== RENDER VISÃO GERAL =====
+function renderVisao() {
+  const trans = filtrarMes(state.transacoes);
+  const entradas = trans.filter(t=>t.tipo==='entrada').reduce((a,t)=>a+parseFloat(t.valor),0);
+  const saidas = trans.filter(t=>t.tipo==='saida').reduce((a,t)=>a+parseFloat(t.valor),0);
+  const credito = trans.filter(t=>t.tipo==='credito').reduce((a,t)=>a+parseFloat(t.valor),0);
+  const saldo = entradas - saidas - credito;
+
+  document.getElementById('totalEntradas').textContent = fmt(entradas);
+  document.getElementById('totalSaidas').textContent = fmt(saidas + credito);
+  const sEl = document.getElementById('saldoMes');
+  sEl.textContent = fmt(saldo);
+  sEl.style.color = saldo>=0 ? 'var(--green)' : 'var(--red)';
+
+  // Salários
+  const cfg = state.config;
+  const sal = parseFloat(cfg.salarioJosiel||0)+parseFloat(cfg.salarioRayane||0);
+  const valesTotal = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo).reduce((a,v)=>a+parseFloat(v.valor),0);
+  document.getElementById('totalRenda').textContent = fmt(sal+valesTotal);
+  document.getElementById('salariosList').innerHTML = `
+    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-j">J</div><div><div class="salary-name">Josiel</div><div class="salary-sub">Salário + iFood</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salarioJosiel||0)+1000)}</div></div>
+    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-r">R</div><div><div class="salary-name">Rayane</div><div class="salary-sub">Salário + Coper</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salarioRayane||0))}</div></div>
+  `;
+
+  // Vales
+  const valesM = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
+  document.getElementById('valesResumo').innerHTML = valesM.length===0
+    ? '<div class="empty" style="padding:12px"><p>Nenhum vale registrado</p></div>'
+    : valesM.map(v=>`<div class="salary-row"><div class="salary-person"><div style="font-size:1.2rem">${v.tipo==='ifood'?'🍔':v.tipo==='coper'?'🏦':'🎟️'}</div><div><div class="salary-name">${v.nome}</div><div class="salary-sub">${v.pessoa==='josiel'?'Josiel':'Rayane'}</div></div></div><div class="salary-value">${fmt(v.valor)}</div></div>`).join('');
+
+  // Contas pendentes
+  const contasPend = state.contas.filter(c=>c.status!=='pago');
+  document.getElementById('contasPendentesResumo').innerHTML = contasPend.length===0
+    ? '<div class="empty" style="padding:12px"><span class="empty-icon">✅</span><p>Tudo em dia!</p></div>'
+    : contasPend.slice(0,3).map(c=>`<div class="conta-item"><div class="conta-dot" style="background:${c.status==='atrasado'?'var(--red)':'var(--yellow)'}"></div><div class="conta-info"><div class="conta-nome">${c.desc}</div><div class="conta-venc">Vence: ${c.vencimento?new Date(c.vencimento).toLocaleDateString('pt-BR'):'—'}</div></div><div class="conta-valor ${c.status}">${fmt(c.valor)}</div></div>`).join('');
+
+  // Categorias
+  const catTotais = {};
+  trans.filter(t=>t.tipo==='saida'||t.tipo==='credito').forEach(t=>{ const c=t.categoria||'outros'; catTotais[c]=(catTotais[c]||0)+parseFloat(t.valor); });
+  const sorted = Object.entries(catTotais).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('categoriasResumo').innerHTML = sorted.length===0
+    ? '<div class="empty" style="padding:12px"><p>Nenhum gasto registrado</p></div>'
+    : sorted.map(([c,v])=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${cats[c]?.color||'#aaa'}"></div>${cats[c]?.label||c}</div><span class="resumo-val">${fmt(v)}</span></div>`).join('');
+}
+
+// ===== RENDER TRANSAÇÕES =====
+function renderTransacoes() {
+  const filtro = document.getElementById('filtroTipo')?.value || '';
+  let trans = filtrarMes(state.transacoes);
+  if(filtro) trans = trans.filter(t=>t.tipo===filtro);
+  trans = trans.sort((a,b)=>new Date(b.data)-new Date(a.data));
+  const el = document.getElementById('transacoesList');
+  if(trans.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><p>Nenhum lançamento</p></div>'; return; }
+  el.innerHTML = trans.map((t,i)=>{
+    const icons = {entrada:'⬆️',saida:'⬇️',credito:'💳',conta:'📋'};
+    const cls = t.tipo==='entrada'?'pos':t.tipo==='saida'?'neg':'cred';
+    const signal = t.tipo==='entrada'?'+':'-';
+    const idx = state.transacoes.indexOf(t);
+    return `<div class="trans-item">
+      <div class="trans-icon ${t.tipo==='entrada'?'entrada':'saida'}">${icons[t.tipo]||'📦'}</div>
+      <div class="trans-info">
+        <div class="trans-desc">${t.desc}</div>
+        <div class="trans-meta">${cats[t.categoria]?.label||t.categoria||''} • ${t.pessoa==='josiel'?'Josiel':t.pessoa==='rayane'?'Rayane':'Conjunto'}</div>
+      </div>
+      <div class="trans-valor">
+        <div class="amount ${cls}">${signal}${fmt(t.valor)}</div>
+        <div class="date">${t.data?new Date(t.data).toLocaleDateString('pt-BR'):'—'}</div>
+      </div>
+      <button class="del-btn" onclick="deletar(${idx},'transacoes')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// ===== RENDER CONTAS =====
+function renderContas() {
+  const el = document.getElementById('contasList');
+  if(state.contas.length===0){ el.innerHTML='<div class="card"><div class="empty"><div class="empty-icon">📋</div><p>Nenhuma conta cadastrada</p></div></div>'; }
+  else {
+    el.innerHTML = state.contas.map((c,i)=>`
+      <div class="card" style="padding:12px">
+        <div class="conta-item">
+          <div class="conta-dot" style="background:${c.status==='pago'?'var(--green)':c.status==='atrasado'?'var(--red)':'var(--yellow)'}"></div>
+          <div class="conta-info">
+            <div class="conta-nome">${c.desc}</div>
+            <div class="conta-venc">Vence: ${c.vencimento?new Date(c.vencimento).toLocaleDateString('pt-BR'):'—'} • ${c.pessoa==='josiel'?'Josiel':c.pessoa==='rayane'?'Rayane':'Conjunto'}</div>
+          </div>
+          <span class="conta-status status-${c.status}">${c.status==='pago'?'✓ Pago':c.status==='atrasado'?'⚠️ Atrasado':'⏳ Pendente'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+          <span class="conta-valor ${c.status}" style="font-size:1.1rem">${fmt(c.valor)}</span>
+          <div style="display:flex;gap:8px">
+            ${c.status!=='pago'?`<button class="btn-small" style="color:var(--green);border-color:var(--green)" onclick="marcarPago(${i})">✓ Pagar</button>`:''}
+            <button class="del-btn" onclick="deletar(${i},'contas')">🗑</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  // totais
+  let pago=0,pend=0,atr=0;
+  state.contas.forEach(c=>{ const v=parseFloat(c.valor||0); if(c.status==='pago')pago+=v; else if(c.status==='atrasado')atr+=v; else pend+=v; });
+  document.getElementById('totalPago').textContent=fmt(pago);
+  document.getElementById('totalPendente').textContent=fmt(pend);
+  document.getElementById('totalAtrasado').textContent=fmt(atr);
+}
+
+function marcarPago(i) {
+  state.contas[i].status='pago';
+  save(); renderAll();
+}
+
+// ===== RENDER CRÉDITO =====
+function renderCredito() {
+  const cfg = state.config;
+  document.getElementById('ccBankName').textContent = cfg.ccBanco||'Meu Cartão';
+  document.getElementById('cc4digits').textContent = cfg.cc4dig||'0000';
+  const venc = cfg.ccVencimento ? 'Dia ' + cfg.ccVencimento : '—';
+  document.getElementById('ccVencimento').textContent = venc;
+
+  const trans = filtrarMes(state.transacoes).filter(t=>t.tipo==='credito');
+  const fatura = trans.reduce((a,t)=>a+parseFloat(t.valor),0);
+  const limite = parseFloat(cfg.ccLimite||0);
+  const disp = Math.max(0, limite - fatura);
+
+  document.getElementById('faturaAtual').textContent = fmt(fatura);
+  document.getElementById('ccLimiteDisp').textContent = fmt(disp);
+  document.getElementById('limiteUsadoLabel').textContent = fmt(fatura) + ' usado';
+  document.getElementById('limiteTotalLabel').textContent = 'de ' + fmt(limite);
+  const pct = limite>0 ? Math.min(100,(fatura/limite)*100) : 0;
+  const fill = document.getElementById('limiteFill');
+  fill.style.width = pct+'%';
+  fill.className = 'progress-fill ' + (pct<60?'green':pct<85?'yellow':'red');
+
+  const el = document.getElementById('creditoList');
+  if(trans.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">💳</div><p>Nenhuma compra no crédito</p></div>'; return; }
+  el.innerHTML = trans.sort((a,b)=>new Date(b.data)-new Date(a.data)).map((t,idx)=>{
+    const i=state.transacoes.indexOf(t);
+    return `<div class="trans-item">
+      <div class="trans-icon credito">🛍️</div>
+      <div class="trans-info"><div class="trans-desc">${t.desc}</div><div class="trans-meta">${cats[t.categoria]?.label||''}</div></div>
+      <div class="trans-valor"><div class="amount cred">-${fmt(t.valor)}</div><div class="date">${t.data?new Date(t.data).toLocaleDateString('pt-BR'):'—'}</div></div>
+      <button class="del-btn" onclick="deletar(${i},'transacoes')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// ===== RENDER VALES =====
+function renderVales() {
+  const el = document.getElementById('valesList');
+  const valesM = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
+  if(valesM.length===0){ el.innerHTML='<div class="card"><div class="empty"><div class="empty-icon">🎟️</div><p>Nenhum vale registrado</p></div></div>'; return; }
+  el.innerHTML = valesM.map((v,i)=>{
+    const real = state.vales.indexOf(v);
+    const badgeClass = v.tipo==='ifood'?'badge-ifood':v.tipo==='coper'?'badge-coper':'badge-custom';
+    const badgeLabel = v.tipo==='ifood'?'iFood':v.tipo==='coper'?'Coper':v.tipo==='vt'?'V. Transporte':v.tipo==='va'?'V. Alimentação':'Outro';
+    return `<div class="vale-card">
+      <div class="vale-header">
+        <div class="vale-name">${v.nome} <span style="color:var(--text2);font-size:0.8rem">• ${v.pessoa==='josiel'?'Josiel':'Rayane'}</span></div>
+        <span class="vale-badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:1.2rem;font-weight:700;color:var(--green)">${fmt(v.valor)}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${v.obs?`<span style="font-size:0.72rem;color:var(--text2)">${v.obs}</span>`:''}
+          <button class="del-btn" onclick="deletar(${real},'vales')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== RENDER CONFIG =====
+function renderConfig() {
+  const cfg = state.config;
+  document.getElementById('cfgSalarioJosiel').value = cfg.salarioJosiel||'';
+  document.getElementById('cfgSalarioRayane').value = cfg.salarioRayane||'';
+  document.getElementById('cfgCcBanco').value = cfg.ccBanco||'';
+  document.getElementById('cfgCc4dig').value = cfg.cc4dig||'';
+  document.getElementById('cfgCcLimite').value = cfg.ccLimite||'';
+  document.getElementById('cfgCcVencimento').value = cfg.ccVencimento||'';
+}
+
+function salvarConfig() {
+  state.config.salarioJosiel = parseFloat(document.getElementById('cfgSalarioJosiel').value)||0;
+  state.config.salarioRayane = parseFloat(document.getElementById('cfgSalarioRayane').value)||0;
+  state.config.ccBanco = document.getElementById('cfgCcBanco').value||'Meu Cartão';
+  state.config.cc4dig = document.getElementById('cfgCc4dig').value||'0000';
+  state.config.ccLimite = parseFloat(document.getElementById('cfgCcLimite').value)||0;
+  state.config.ccVencimento = document.getElementById('cfgCcVencimento').value||'';
+  save();
+  toast('✅ Configurações salvas!');
+  renderAll();
+}
+
+// ===== RENDER ALL =====
+function renderAll() {
+  renderVisao();
+  renderTransacoes();
+  renderContas();
+  renderCredito();
+  renderVales();
+  renderConfig();
+}
+
+// ===== MODAL LANÇAMENTO =====
+function abrirModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('fData').value = new Date().toISOString().split('T')[0];
+  setTipo('entrada');
+}
+function fecharModal(e) { if(e.target===document.getElementById('modalOverlay')) document.getElementById('modalOverlay').classList.remove('open'); }
+
+function setTipo(t) {
+  tipoAtual=t;
+  ['entrada','saida','credito','conta'].forEach(x=>document.getElementById('btn-'+x).classList.remove('active'));
+  document.getElementById('btn-'+t).classList.add('active');
+  document.getElementById('extraConta').style.display = t==='conta'?'block':'none';
+}
+
+function salvarLancamento() {
+  const desc = document.getElementById('fDesc').value.trim();
+  const valor = parseFloat(document.getElementById('fValor').value);
+  const categoria = document.getElementById('fCategoria').value;
+  const pessoa = document.getElementById('fPessoa').value;
+  const data = document.getElementById('fData').value;
+  if(!desc||!valor){ toast('⚠️ Preencha descrição e valor'); return; }
+
+  if(tipoAtual==='conta') {
+    state.contas.push({ desc, valor, categoria, pessoa, data, vencimento: document.getElementById('fVencimento').value, status: document.getElementById('fStatusConta').value });
+  } else {
+    state.transacoes.push({ tipo:tipoAtual, desc, valor, categoria, pessoa, data });
+  }
+  save();
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('fDesc').value='';
+  document.getElementById('fValor').value='';
+  toast('✅ Salvo com sucesso!');
+  renderAll();
+}
+
+// ===== MODAL CONTA =====
+function abrirModalConta() {
+  abrirModal();
+  setTipo('conta');
+}
+
+// ===== MODAL VALE =====
+function abrirModalVale() { document.getElementById('modalValeOverlay').classList.add('open'); }
+function fecharModalVale(e) { if(e.target===document.getElementById('modalValeOverlay')) document.getElementById('modalValeOverlay').classList.remove('open'); }
+
+function salvarVale() {
+  const nome = document.getElementById('vNome').value.trim();
+  const valor = parseFloat(document.getElementById('vValor').value);
+  if(!nome||!valor){ toast('⚠️ Preencha nome e valor'); return; }
+  state.vales.push({ nome, pessoa: document.getElementById('vPessoa').value, tipo: document.getElementById('vTipo').value, valor, obs: document.getElementById('vObs').value, mes: mesAtivo, ano: anoAtivo });
+  save();
+  document.getElementById('modalValeOverlay').classList.remove('open');
+  document.getElementById('vNome').value='';
+  document.getElementById('vValor').value='';
+  document.getElementById('vObs').value='';
+  toast('✅ Vale salvo!');
+  renderAll();
+}
+
+// ===== DELETE =====
+function deletar(i, tipo) {
+  if(!confirm('Excluir este item?')) return;
+  state[tipo].splice(i,1);
+  save(); renderAll();
+}
+
+// ===== RESET =====
+function confirmarReset() {
+  if(confirm('⚠️ Resetar todos os lançamentos do mês de '+meses[mesAtivo]+'? As configurações serão mantidas.')) {
+    const mes=mesAtivo, ano=anoAtivo;
+    state.transacoes=state.transacoes.filter(t=>{ const d=new Date(t.data); return !(d.getMonth()===mes&&d.getFullYear()===ano); });
+    state.contas=state.contas.filter(t=>{ const d=new Date(t.data); return !(d.getMonth()===mes&&d.getFullYear()===ano); });
+    state.vales=state.vales.filter(v=>!(v.mes===mes&&v.ano===ano));
+    save(); renderAll(); toast('🗑️ Mês resetado!');
+  }
+}
+
+// ===== TOAST =====
+function toast(msg) {
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:0.85rem;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
+  t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+
+// ===== INIT =====
+updateHeader();
+renderAll();
+
+// Vales padrão se vazio no mês
+const valesM = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
+if(valesM.length===0 && state.vales.length===0) {
+  state.vales.push({ nome:'iFood Josiel', pessoa:'josiel', tipo:'ifood', valor:1000, obs:'Benefício mensal', mes:mesAtivo, ano:anoAtivo });
+  save(); renderAll();
+}
+</script>
+</body>
+</html>
