@@ -391,6 +391,22 @@
       </div>
     </div>
 
+    <!-- Alerta rotativo -->
+    <div id="alertaRotativo" style="display:none;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.3);border-radius:12px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:0.82rem;font-weight:700;color:var(--red)">⚠️ Atenção ao rotativo!</div>
+      <div style="font-size:0.75rem;color:var(--text2);margin-top:4px">Se não pagar a fatura total, os juros são de <strong style="color:var(--red)">19,99% ao mês</strong>. R$ 500 viram R$ 600 no mês seguinte.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">📋</span> Taxas Brasil Card Digital</div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">💳 Mensalidade (já lançada)</span><span class="resumo-val" style="color:var(--yellow)">R$ 19,90/mês</span></div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">🔄 Juros rotativo</span><span class="resumo-val" style="color:var(--red)">19,99% a.m.</span></div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">📅 Parcelamento (até 6x)</span><span class="resumo-val" style="color:var(--orange)">18,99% a.m.</span></div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">📅 Parcelamento (7x–15x)</span><span class="resumo-val" style="color:var(--yellow)">12,99% a.m.</span></div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">⏰ Multa por atraso</span><span class="resumo-val" style="color:var(--orange)">2% + 1% a.m.</span></div>
+      <div class="resumo-item"><span class="resumo-cat" style="font-size:0.8rem">🚫 Limite ultrapassado</span><span class="resumo-val" style="color:var(--red)">R$ 14,90</span></div>
+    </div>
+
     <div class="card">
       <div class="card-title"><span class="icon">💸</span> Lançamentos no Crédito</div>
       <div id="creditoList" class="scroll-list"></div>
@@ -782,6 +798,7 @@ function renderCredito() {
   const fill = document.getElementById('limiteFill');
   fill.style.width = pct+'%';
   fill.className = 'progress-fill ' + (pct<60?'green':pct<85?'yellow':'red');
+  document.getElementById('alertaRotativo').style.display = pct >= 70 ? 'block' : 'none';
 
   const el = document.getElementById('creditoList');
   if(trans.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">💳</div><p>Nenhuma compra no crédito</p></div>'; return; }
@@ -941,6 +958,40 @@ function toast(msg) {
 }
 
 // ===== INIT =====
+
+// Config padrão BrasilCard se ainda não configurado
+if(!state.config.ccBanco) {
+  state.config.ccBanco = 'Brasil Card Digital';
+  state.config.cc4dig = '';
+  state.config.ccLimite = 1219;
+  state.config.ccVencimento = '';
+  save();
+}
+
+// Mensalidade fixa BrasilCard — lança automaticamente no mês se ainda não existe
+function garantirMensalidadeCC() {
+  const jaExiste = state.transacoes.some(t =>
+    t.tipo === 'credito' &&
+    t.desc === 'Mensalidade Brasil Card' &&
+    new Date(t.data).getMonth() === mesAtivo &&
+    new Date(t.data).getFullYear() === anoAtivo
+  );
+  if (!jaExiste) {
+    const dia1 = new Date(anoAtivo, mesAtivo, 1).toISOString().split('T')[0];
+    state.transacoes.push({
+      tipo: 'credito',
+      desc: 'Mensalidade Brasil Card',
+      valor: 19.90,
+      categoria: 'conta',
+      pessoa: 'conjunto',
+      data: dia1,
+      fixo: true
+    });
+    save();
+  }
+}
+garantirMensalidadeCC();
+
 updateHeader();
 renderAll();
 
