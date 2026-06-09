@@ -424,6 +424,26 @@
 
   <!-- CONFIG -->
   <div class="tab-page" id="tab-config">
+
+    <!-- SYNC -->
+    <div class="card config-section" id="syncCard">
+      <div class="config-title">🔄 Sincronização</div>
+      <div id="syncStatus" style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span id="syncDot" style="width:10px;height:10px;border-radius:50%;background:var(--text2);flex-shrink:0"></span>
+        <span id="syncMsg" style="font-size:0.8rem;color:var(--text2)">Não sincronizado</span>
+      </div>
+      <div class="form-group">
+        <label>Quem sou eu neste celular?</label>
+        <select id="cfgPerfil">
+          <option value="">Selecionar...</option>
+          <option value="josiel">Josiel</option>
+          <option value="rayane">Rayane</option>
+        </select>
+      </div>
+      <button class="btn-save" style="background:linear-gradient(135deg,var(--green),#00a884)" onclick="sincronizarAgora()">🔄 Sincronizar Agora</button>
+      <div id="syncUltima" style="text-align:center;font-size:0.72rem;color:var(--text2);margin-top:8px"></div>
+    </div>
+
     <div class="card config-section">
       <div class="config-title">💼 Salários</div>
       <div class="form-group">
@@ -592,7 +612,11 @@ let mesAtivo = new Date().getMonth();
 let anoAtivo = new Date().getFullYear();
 let tipoAtual = 'entrada';
 
-function save() { localStorage.setItem('financas_jr', JSON.stringify(state)); }
+function save() {
+  localStorage.setItem('financas_jr', JSON.stringify(state));
+  // Push automático se tiver perfil configurado
+  if (getPerfil()) pushSync();
+}
 
 // ===== UTILS =====
 const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -838,6 +862,107 @@ function renderVales() {
   }).join('');
 }
 
+// ===== SYNC =====
+const SB_URL = 'https://trbyynbtuzpszdvjivbs.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRyYnl5bmJ0dXpwc3pkdmppdmJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODIyODAxOCwiZXhwIjoyMDkzODA0MDE4fQ.OZq8bycNQWEpdbxPiSuB9gt7A0fPKNkawcrtE5XpGFg';
+const SYNC_CANAL = 'financas_jr_sync';
+
+function getPerfil() { return localStorage.getItem('financas_jr_perfil') || ''; }
+function setPerfil(p) { localStorage.setItem('financas_jr_perfil', p); }
+
+function setSyncUI(status, msg) {
+  const colors = { ok:'var(--green)', sync:'var(--yellow)', err:'var(--red)', off:'var(--text2)' };
+  document.getElementById('syncDot').style.background = colors[status] || colors.off;
+  document.getElementById('syncMsg').textContent = msg;
+}
+
+async function pushSync() {
+  const perfil = getPerfil();
+  if (!perfil) return;
+  try {
+    // Deletar registro antigo deste perfil
+    await fetch(`${SB_URL}/rest/v1/prd_mensagens?para=eq.${SYNC_CANAL}&de=eq.${perfil}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    // Inserir novo
+    const resp = await fetch(`${SB_URL}/rest/v1/prd_mensagens`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ para: SYNC_CANAL, de: perfil, nome: perfil, texto: JSON.stringify(state), lida: false })
+    });
+    if (resp.ok) {
+      localStorage.setItem('financas_jr_last_sync', new Date().toISOString());
+      setSyncUI('ok', '✓ Sincronizado — ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}));
+      atualizarUltimaSinc();
+    } else setSyncUI('err', 'Erro ao sincronizar');
+  } catch(e) { setSyncUI('err', 'Sem conexão'); }
+}
+
+async function pullSync() {
+  const perfil = getPerfil();
+  if (!perfil) return;
+  const outro = perfil === 'josiel' ? 'rayane' : 'josiel';
+  try {
+    const resp = await fetch(`${SB_URL}/rest/v1/prd_mensagens?para=eq.${SYNC_CANAL}&de=eq.${outro}&order=ts.desc&limit=1`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const rows = await resp.json();
+    if (!rows || !rows.length) return;
+    const remoto = JSON.parse(rows[0].texto);
+    // Mesclar: unir listas sem duplicar (por conteúdo serializado)
+    const mesclados = mergeState(state, remoto);
+    state = mesclados;
+    save();
+    renderAll();
+    setSyncUI('ok', '✓ Dados de ' + (outro==='josiel'?'Josiel':'Rayane') + ' recebidos!');
+    atualizarUltimaSinc();
+  } catch(e) { /* silencioso */ }
+}
+
+function mergeState(local, remoto) {
+  // Transações: unir por hash desc+valor+data
+  const hashT = t => t.desc + '|' + t.valor + '|' + t.data + '|' + t.tipo;
+  const existentes = new Set(local.transacoes.map(hashT));
+  const novas = (remoto.transacoes || []).filter(t => !existentes.has(hashT(t)));
+  // Contas: unir por desc+vencimento
+  const hashC = c => c.desc + '|' + (c.vencimento||'') + '|' + c.valor;
+  const existentesC = new Set(local.contas.map(hashC));
+  const novasC = (remoto.contas || []).filter(c => !existentesC.has(hashC(c)));
+  // Vales: unir por nome+mes+ano
+  const hashV = v => v.nome + '|' + v.mes + '|' + v.ano;
+  const existentesV = new Set(local.vales.map(hashV));
+  const novasV = (remoto.vales || []).filter(v => !existentesV.has(hashV(v)));
+  return {
+    transacoes: [...local.transacoes, ...novas],
+    contas: [...local.contas, ...novasC],
+    vales: [...local.vales, ...novasV],
+    config: local.config // config local tem prioridade
+  };
+}
+
+async function sincronizarAgora() {
+  const sel = document.getElementById('cfgPerfil').value;
+  if (sel) setPerfil(sel);
+  if (!getPerfil()) { toast('⚠️ Selecione quem você é primeiro!'); return; }
+  setSyncUI('sync', '🔄 Sincronizando...');
+  await pullSync();
+  await pushSync();
+  toast('✅ Sincronizado com sucesso!');
+}
+
+function atualizarUltimaSinc() {
+  const el = document.getElementById('syncUltima');
+  if (!el) return;
+  const last = localStorage.getItem('financas_jr_last_sync');
+  el.textContent = last ? 'Última sync: ' + new Date(last).toLocaleString('pt-BR') : '';
+}
+
+// Sync automático a cada 30 segundos se tiver perfil
+setInterval(async () => {
+  if (getPerfil()) { await pullSync(); await pushSync(); }
+}, 30000);
+
 // ===== RENDER CONFIG =====
 function renderConfig() {
   const cfg = state.config;
@@ -847,6 +972,13 @@ function renderConfig() {
   document.getElementById('cfgCc4dig').value = cfg.cc4dig||'';
   document.getElementById('cfgCcLimite').value = cfg.ccLimite||'';
   document.getElementById('cfgCcVencimento').value = cfg.ccVencimento||'';
+  // Perfil sync
+  const perfil = getPerfil();
+  if (perfil) document.getElementById('cfgPerfil').value = perfil;
+  // Status sync
+  if (!perfil) { setSyncUI('off','Selecione seu perfil para ativar'); }
+  else { setSyncUI('ok', '✓ Ativo como ' + (perfil==='josiel'?'Josiel':'Rayane')); }
+  atualizarUltimaSinc();
 }
 
 function salvarConfig() {
@@ -994,6 +1126,12 @@ garantirMensalidadeCC();
 
 updateHeader();
 renderAll();
+
+// Pull inicial ao abrir o app
+if (getPerfil()) {
+  setSyncUI('sync', '🔄 Buscando dados...');
+  pullSync().then(() => pushSync());
+}
 
 // Vales padrão se vazio no mês
 const valesM = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
