@@ -654,7 +654,7 @@ function updateHeader(){
   document.getElementById('mesAtual').textContent=meses[mesAtivo]+' '+anoAtivo;
   document.getElementById('headerDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
 }
-function mudarMes(d){ mesAtivo+=d; if(mesAtivo<0){mesAtivo=11;anoAtivo--;} if(mesAtivo>11){mesAtivo=0;anoAtivo++;} updateHeader(); renderAll(); garantirMensalidadeCC(); }
+function mudarMes(d){ mesAtivo+=d; if(mesAtivo<0){mesAtivo=11;anoAtivo--;} if(mesAtivo>11){mesAtivo=0;anoAtivo++;} updateHeader(); renderAll(); }
 
 // ===== TABS =====
 function showTab(id){ document.querySelectorAll('.tab-page').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active')); document.getElementById('tab-'+id).classList.add('active'); event.currentTarget.classList.add('active'); renderAll(); }
@@ -1027,12 +1027,6 @@ function garantirMensalidadeCC(){
 function toast(msg){ const t=document.createElement('div'); t.style.cssText='position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#2a2a4a;color:#fff;padding:9px 18px;border-radius:18px;font-size:.82rem;z-index:999;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.5);border:1px solid var(--border)'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
 
 // ===== INIT =====
-garantirMensalidadeCC();
-// Vale iFood padrão se vazio
-if(state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo).length===0 && state.vales.length===0){
-  state.vales.push({nome:'iFood Josiel',pessoa:'josiel',tipo:'ifood',valor:1000,obs:'Benefício mensal',mes:mesAtivo,ano:anoAtivo});
-  save(false);
-}
 updateHeader();
 renderAll();
 if(getPerfil()){ setSyncUI('sync','🔄 Buscando dados...'); pullSync().then(()=>pushSync()); }
