@@ -293,9 +293,99 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
     <!-- JOSIEL -->
     <div class="card">
-      <div class="card-title"><span class="icon">👤</span> Extrato Josiel — <span style="color:var(--text2);font-weight:400;font-size:.8rem" id="ex-periodo-j">—</span></div>
-      <div id="ex-josiel-resumo"></div>
-      <div id="ex-josiel-itens" style="margin-top:10px"></div>
+      <div class="card-title"><span class="icon">💰</span> Extrato Josiel — <span style="color:var(--text2);font-weight:400;font-size:.8rem">01/06 a 15/06/2026</span></div>
+
+      <!-- Entradas detalhadas -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📥 Entradas</div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Salário Josiel (Prensadão)</div><span class="resumo-val" style="color:var(--green)">+R$ 4.260,92</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Ruan (PIX recebido)</div><span class="resumo-val" style="color:var(--green)">+R$ 50,00</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Douglas (PIX recebido)</div><span class="resumo-val" style="color:var(--green)">+R$ 50,00</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Outros recebidos</div><span class="resumo-val" style="color:var(--green)">+R$ 50,00</span></div>
+        <div style="background:rgba(0,210,100,.08);border:1px solid rgba(0,210,100,.25);border-radius:8px;padding:8px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.78rem;font-weight:700;color:var(--green)">Total entradas</span>
+          <span style="font-size:.9rem;font-weight:800;color:var(--green)">R$ 4.410,92</span>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:10px 0"></div>
+
+      <!-- Saídas por categoria -->
+      <div style="margin-bottom:12px">
+        <div style="font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📤 Saídas por categoria</div>
+
+        <!-- Faturas -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">📄 Faturas</span><span style="font-size:.76rem;font-weight:600;color:var(--yellow)">R$ 1.764,81 (49%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:49%;background:var(--yellow);border-radius:4px"></div></div>
+        </div>
+        <!-- Compras -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">🛍️ Compras/Lojas</span><span style="font-size:.76rem;font-weight:600;color:var(--red)">R$ 174,47 (5%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:5%;background:var(--red);border-radius:4px"></div></div>
+        </div>
+        <!-- Transferências -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">📦 Transferências/Outros</span><span style="font-size:.76rem;font-weight:600;color:var(--primary)">R$ 745,09 (21%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:21%;background:var(--primary);border-radius:4px"></div></div>
+        </div>
+        <!-- Alimentação -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">🍔 Alimentação</span><span style="font-size:.76rem;font-weight:600;color:var(--green)">R$ 263,01 (7%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:7%;background:var(--green);border-radius:4px"></div></div>
+        </div>
+        <!-- Lazer -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">🎉 Lazer/Lanches</span><span style="font-size:.76rem;font-weight:600;color:var(--orange)">R$ 107,86 (3%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:3%;background:var(--orange);border-radius:4px"></div></div>
+        </div>
+        <!-- Outros -->
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:.76rem">💊 Saúde/Farmácias</span><span style="font-size:.76rem;font-weight:600;color:var(--blue)">R$ 133,45 (4%)</span></div>
+          <div style="background:var(--card2);border-radius:4px;height:5px"><div style="height:100%;width:4%;background:var(--blue);border-radius:4px"></div></div>
+        </div>
+
+        <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.25);border-radius:8px;padding:8px;margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:.78rem;font-weight:700;color:var(--red)">Total saídas</span>
+          <span style="font-size:.9rem;font-weight:800;color:var(--red)">R$ 3.565,77</span>
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:10px 0"></div>
+
+      <!-- Todos os lançamentos -->
+      <div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🧾 Todos os lançamentos</div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>Fatura Banco PAN</div><span class="resumo-val" style="color:var(--red)">-R$ 500,31</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>Fatura Brasil Card (maio)</div><span class="resumo-val" style="color:var(--red)">-R$ 1.264,50</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Anderson Braz</div><span class="resumo-val" style="color:var(--red)">-R$ 190,00</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Maria Eliane</div><span class="resumo-val" style="color:var(--red)">-R$ 370,00</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Transferências diversas</div><span class="resumo-val" style="color:var(--red)">-R$ 185,00</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--red)"></div>Hiper Dal Pozzo / Lojas</div><span class="resumo-val" style="color:var(--red)">-R$ 174,47</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Supermercados</div><span class="resumo-val" style="color:var(--red)">-R$ 166,96</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--green)"></div>Panificadora</div><span class="resumo-val" style="color:var(--red)">-R$ 96,05</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--orange)"></div>Restaurantes/Lanches</div><span class="resumo-val" style="color:var(--red)">-R$ 107,86</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--blue)"></div>Farmácias</div><span class="resumo-val" style="color:var(--red)">-R$ 133,45</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Google/Serviços digitais</div><span class="resumo-val" style="color:var(--red)">-R$ 33,98</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Uber/Transporte</div><span class="resumo-val" style="color:var(--red)">-R$ 8,30</span></div>
+        <div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--primary)"></div>Outros gastos</div><span class="resumo-val" style="color:var(--red)">-R$ 335,09</span></div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:10px 0"></div>
+
+      <!-- Alerta gastos que podem reduzir -->
+      <div style="background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px">
+        <div style="font-size:.73rem;font-weight:700;color:var(--yellow);margin-bottom:6px">⚠️ Pode reduzir (8% das saídas)</div>
+        <div class="resumo-item" style="padding:3px 0"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>Restaurantes/Lanches</div><span class="resumo-val" style="color:var(--yellow)">R$ 107,86</span></div>
+        <div class="resumo-item" style="padding:3px 0"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>Hiper Dal Pozzo / Lojas</div><span class="resumo-val" style="color:var(--yellow)">R$ 174,47</span></div>
+        <div style="font-size:.67rem;color:var(--text2);margin-top:5px">💡 Economizando metade sobra mais R$ 141,17/mês</div>
+      </div>
+
+      <!-- Saldo final -->
+      <div style="background:linear-gradient(135deg,rgba(108,99,255,.15),rgba(108,99,255,.05));border:1px solid rgba(108,99,255,.3);border-radius:10px;padding:12px;margin-top:10px;text-align:center">
+        <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">💰 Saldo no banco após este período</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--primary)">R$ 845,15</div>
+      </div>
     </div>
 
     <!-- RAYANE -->
@@ -619,7 +709,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v17_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v18_20260615'; // muda aqui para forçar reset do cache
 
 // Extrato e saldo ficam FORA do state — nunca são apagados pelo sync
 const EXTRATO_FIXO = {
