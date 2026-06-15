@@ -228,8 +228,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <!-- SALDO PRINCIPAL -->
     <div style="background:linear-gradient(135deg,#1a1a4e,#2d2d7e);border-radius:16px;padding:20px;margin-bottom:10px;border:1px solid rgba(108,99,255,.4);text-align:center;">
       <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">💰 Saldo Atual</div>
-      <div id="v-saldo" style="font-size:2rem;font-weight:800;color:#fff">R$ 0</div>
+      <div id="v-saldo" style="font-size:2rem;font-weight:800;color:#fff" onclick="editarSaldo()" title="Toque para atualizar">R$ 0</div>
       <div id="v-saldo-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:4px"></div>
+      <div style="margin-top:8px"><button onclick="editarSaldo()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);border-radius:20px;padding:4px 14px;font-size:.7rem;cursor:pointer">✏️ Atualizar saldo</button></div>
     </div>
 
     <!-- GRID 4 CARDS -->
@@ -588,7 +589,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v8_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v9_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -596,12 +597,12 @@ const ESTADO_INICIAL = {
     {nome:'SANEPAR — Água/Esgoto', valor:123.98, vencimento:'2026-05-09', pagamento:'salario_rayane', status:'atrasado', dataPago:'', obs:'Juros: R$ 2,63 — Titular: Rayane', fixa:'sim'}
   ],
   outros: [
-    {desc:'Fatura Banco PAN', valor:500.31, data:'2026-06-01', cat:'fatura', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Anderson Braz', valor:190.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Panificadora', valor:96.05, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Maria Eliane', valor:370.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Farmácias', valor:133.45, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'}
+    {desc:'Fatura Banco PAN', valor:500.31, data:'2026-06-01', cat:'fatura', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true},
+    {desc:'Anderson Braz', valor:190.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true},
+    {desc:'Panificadora', valor:96.05, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true},
+    {desc:'Maria Eliane', valor:370.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true},
+    {desc:'Farmácias', valor:133.45, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true},
+    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter', pago:true}
   ],
   vales: [],
   credito: [
@@ -612,13 +613,11 @@ const ESTADO_INICIAL = {
     {desc:'Hiper Dal Pozzo', valor:59.99, data:'2026-06-06', cat:'compras', pessoa:'josiel'},
     {desc:'Hiper Dal Pozzo', valor:1034.70, data:'2026-06-06', cat:'compras', pessoa:'josiel'}
   ],
-  config: {salJ:4260.92, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
-    ajusteGastosDiarios: 54.05,
-    extrasJ:[
-      {desc:'Ruan Henrique', valor:40.00, data:'2026-06-01'},
-      {desc:'Devolução Maria Eliane', valor:30.00, data:'2026-06-03'},
-      {desc:'Douglas Matheus', valor:80.00, data:'2026-06-09'}
-    ]
+  config: {
+    salJ:4260.92, salR:0,
+    ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
+    saldoAtual: 935.15
+  }
   }
 };
 
@@ -749,40 +748,39 @@ function showTab(id){ document.querySelectorAll('.tab-page').forEach(t=>t.classL
 // ===== RENDER VISÃO =====
 function renderVisao(){
   const cfg=state.config;
-  const totalRenda = parseFloat(cfg.salJ||0)+parseFloat(cfg.salR||0);
-  const valesM     = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
-  const totVales   = valesM.reduce((a,v)=>a+parseFloat(v.valor||0),0);
-  const totExtras  = 0; // extras já refletidas no saldo bancário
-  const ajuste     = parseFloat(cfg.ajusteGastosDiarios||0);
-  const totalEntradas = totalRenda+totVales;
 
-  // Contas separadas por status
-  const contasPagas     = state.contas.filter(c=>c.status==='pago');
+  // NOVA LÓGICA: saldo livre informado manualmente
+  // Só desconta quando conta/gasto é marcado como PAGO
+  const saldoBase   = parseFloat(cfg.saldoAtual||0);
+  const totPagoContas = state.contas.filter(c=>c.status==='pago').reduce((a,c)=>a+parseFloat(c.valor||0),0);
+  // Outros já marcados como pagos no extrato
+  const totOutrosPagos = filtrarMes(state.outros).filter(o=>o.pago===true).reduce((a,o)=>a+parseFloat(o.valor||0),0);
+  // Saldo real = saldo base (já reflete os outros pagos do extrato)
+  // Só desconta contas que foram pagas DEPOIS do saldo informado
+  const saldo = saldoBase - totPagoContas;
+
+  // Totais pra exibição
   const contasPendentes = state.contas.filter(c=>c.status==='pendente');
   const contasAtrasadas = state.contas.filter(c=>c.status==='atrasado');
-
-  const totPago     = contasPagas.reduce((a,c)=>a+parseFloat(c.valor||0),0);
   const totPendente = contasPendentes.reduce((a,c)=>a+parseFloat(c.valor||0),0);
   const totAtrasado = contasAtrasadas.reduce((a,c)=>a+parseFloat(c.valor||0),0);
-  const totOutros   = filtrarMes(state.outros).reduce((a,o)=>a+parseFloat(o.valor||0),0);
+  const totOutrosTodos = filtrarMes(state.outros).reduce((a,o)=>a+parseFloat(o.valor||0),0);
   const totCC       = filtrarMes(state.credito).reduce((a,c)=>a+parseFloat(c.valor||0),0);
-
-  // Saldo = entradas - tudo que já saiu ou está comprometido - ajuste gastos diários
-  const saldo = totalEntradas - totPago - totOutros - totCC - totPendente - totAtrasado - ajuste;
+  const totalRenda  = parseFloat(cfg.salJ||0)+parseFloat(cfg.salR||0);
 
   // Saldo principal
   const se=document.getElementById('v-saldo');
   se.textContent=fmt(saldo);
   se.style.color=saldo>=0?'var(--green)':'var(--red)';
   document.getElementById('v-saldo-sub').textContent=
-    saldo>=0?'Disponível agora 💰':'Atenção: gastos acima da renda ⚠️';
+    saldo>=0?'Disponível agora 💰':'Atenção: saldo negativo ⚠️';
 
   // 4 cards
-  document.getElementById('v-ja-pago').textContent=fmt(totPago+totOutros+ajuste);
+  document.getElementById('v-ja-pago').textContent=fmt(totOutrosPagos+totPagoContas);
   document.getElementById('v-a-pagar').textContent=fmt(totPendente);
   document.getElementById('v-atrasado').textContent=fmt(totAtrasado);
   document.getElementById('v-fatura-cc').textContent=fmt(totCC);
-  document.getElementById('v-total-renda').textContent=fmt(totalEntradas);
+  document.getElementById('v-total-renda').textContent=fmt(totalRenda);
 
   // Bloco atraso
   const blocoAtr=document.getElementById('bloco-atraso');
@@ -1043,6 +1041,17 @@ function salvarConfig(){
 }
 
 // ===== RENDER ALL =====
+function editarSaldo(){
+  const atual = parseFloat(state.config.saldoAtual||0);
+  const novo = prompt('💰 Informe o saldo atual da conta (R$):', atual.toFixed(2).replace('.',','));
+  if(novo===null) return;
+  const val = parseFloat(novo.replace(',','.'));
+  if(isNaN(val)) return alert('Valor inválido!');
+  state.config.saldoAtual = val;
+  salvarState();
+  renderAll();
+}
+
 function renderAll(){ renderVisao(); renderContas(); renderOutros(); renderCredito(); renderVales(); renderConfig(); }
 
 // ===== FAB =====
