@@ -286,6 +286,14 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="card-title"><span class="icon">📦</span> Gastos por Categoria</div>
       <div id="v-categorias"></div>
     </div>
+
+    <!-- RESUMO DO EXTRATO -->
+    <div class="card">
+      <div class="card-title"><span class="icon">📊</span> Resumo do Extrato</div>
+      <div id="v-resumo-extrato">
+        <div class="empty" style="padding:10px"><p>Nenhum extrato lançado</p></div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== CONTAS FIXAS ===== -->
@@ -589,7 +597,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v10_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v11_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -616,7 +624,28 @@ const ESTADO_INICIAL = {
   config: {
     salJ:4260.92, salR:0,
     ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
-    saldoAtual: 935.15
+    saldoAtual: 935.15,
+    extrato: {
+      periodo: '01/06 a 15/06/2026',
+      entradas: 4410.92,
+      saidas: 3565.77,
+      saldoBanco: 845.15,
+      itens: [
+        {desc:'Fatura Banco PAN', valor:500.31, cat:'fatura'},
+        {desc:'Anderson Braz', valor:190.00, cat:'outros'},
+        {desc:'Panificadora', valor:96.05, cat:'alimentacao'},
+        {desc:'Maria Eliane', valor:370.00, cat:'outros'},
+        {desc:'Farmácias', valor:133.45, cat:'saude'},
+        {desc:'Supermercados', valor:166.96, cat:'alimentacao'},
+        {desc:'Fatura Brasil Card (maio)', valor:1264.50, cat:'fatura'},
+        {desc:'Restaurantes/Lanches', valor:107.86, cat:'lazer'},
+        {desc:'Uber/Transporte', valor:8.30, cat:'carro'},
+        {desc:'Google/Serviços', valor:33.98, cat:'outros'},
+        {desc:'Lojas/Presentes', valor:174.47, cat:'compras'},
+        {desc:'Transferências diversas', valor:185.00, cat:'outros'},
+        {desc:'Outros gastos', valor:335.09, cat:'outros'}
+      ]
+    }
   }
 };
 
@@ -847,6 +876,75 @@ function renderVisao(){
   document.getElementById('v-categorias').innerHTML=sorted.length===0
     ?'<div class="empty" style="padding:10px"><p>Nenhum gasto registrado</p></div>'
     :sorted.map(([k,v])=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${catLabel[k]?.c||'#aaa'}"></div>${catLabel[k]?.l||k}</div><span class="resumo-val">${fmt(v)}</span></div>`).join('');
+
+  // ===== RESUMO DO EXTRATO =====
+  const ex = cfg.extrato;
+  const elEx = document.getElementById('v-resumo-extrato');
+  if(!ex || !ex.entradas){ elEx.innerHTML='<div class="empty" style="padding:10px"><p>Nenhum extrato lançado</p></div>'; return; }
+
+  // Agrupa itens por categoria
+  const catTotais={};
+  (ex.itens||[]).forEach(i=>{ const k=i.cat||'outros'; catTotais[k]=(catTotais[k]||0)+i.valor; });
+  const catOrdenada = Object.entries(catTotais).sort((a,b)=>b[1]-a[1]);
+
+  // Detecta gastos "desnecessários" (lazer, lojas/compras não essenciais)
+  const desnecessarios = (ex.itens||[]).filter(i=>['lazer','compras'].includes(i.cat));
+  const totDesn = desnecessarios.reduce((a,i)=>a+i.valor,0);
+  const pctDesn = ex.saidas>0 ? ((totDesn/ex.saidas)*100).toFixed(0) : 0;
+
+  elEx.innerHTML=`
+    <!-- Barra entradas x saídas -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:.72rem;color:var(--text2)">📅 ${ex.periodo}</span>
+        <span style="font-size:.72rem;color:var(--text2)">Banco Inter</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+        <div style="background:rgba(0,210,100,.08);border:1px solid rgba(0,210,100,.2);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:.65rem;color:var(--green);margin-bottom:2px">📥 Entradas</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--green)">${fmt(ex.entradas)}</div>
+        </div>
+        <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:.65rem;color:var(--red);margin-bottom:2px">📤 Saídas</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--red)">${fmt(ex.saidas)}</div>
+        </div>
+        <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:8px;text-align:center">
+          <div style="font-size:.65rem;color:var(--primary);margin-bottom:2px">💰 Saldo</div>
+          <div style="font-size:.9rem;font-weight:700;color:var(--primary)">${fmt(ex.saldoBanco)}</div>
+        </div>
+      </div>
+
+      <!-- Barra visual proporcional -->
+      <div style="background:var(--card2);border-radius:8px;height:8px;overflow:hidden;margin-bottom:4px">
+        <div style="height:100%;width:${Math.min(100,(ex.saidas/ex.entradas*100)).toFixed(0)}%;background:linear-gradient(90deg,var(--green),var(--red));border-radius:8px"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--text2);text-align:right">${(ex.saidas/ex.entradas*100).toFixed(0)}% da renda gasto</div>
+    </div>
+
+    <!-- Onde foi o dinheiro -->
+    <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Onde foi o dinheiro</div>
+    ${catOrdenada.map(([k,v])=>{
+      const pct = (v/ex.saidas*100).toFixed(0);
+      const cor = catLabel[k]?.c||'#aaa';
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-size:.78rem">${catLabel[k]?.l||k}</span>
+          <span style="font-size:.78rem;font-weight:600">${fmt(v)} <span style="color:var(--text2);font-weight:400">(${pct}%)</span></span>
+        </div>
+        <div style="background:var(--card2);border-radius:4px;height:5px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:4px"></div>
+        </div>
+      </div>`;
+    }).join('')}
+
+    ${totDesn>0?`
+    <!-- Alerta gastos desnecessários -->
+    <div style="margin-top:10px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px">
+      <div style="font-size:.75rem;font-weight:700;color:var(--yellow);margin-bottom:6px">⚠️ Gastos que podem ser reduzidos (${pctDesn}%)</div>
+      ${desnecessarios.map(i=>`<div class="resumo-item" style="padding:4px 0"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>${i.desc}</div><span class="resumo-val" style="color:var(--yellow)">${fmt(i.valor)}</span></div>`).join('')}
+      <div style="font-size:.68rem;color:var(--text2);margin-top:6px">Total: ${fmt(totDesn)} — se economizar metade, sobra mais ${fmt(totDesn/2)} por mês 💡</div>
+    </div>`:''}
+  `;
 }
 
 // ===== RENDER CONTAS =====
