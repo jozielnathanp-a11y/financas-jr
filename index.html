@@ -597,7 +597,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v13_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v14_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -686,8 +686,11 @@ function setSyncUI(s,m){ const c={ok:'var(--green)',sync:'var(--yellow)',err:'va
 async function pushSync(){
   const p=getPerfil(); if(!p) return;
   try{
+    // Não salva extrato e saldoAtual no Supabase — ficam sempre no código-fonte
+    const stateParaSync = JSON.parse(JSON.stringify(state));
+    if(stateParaSync.config){ delete stateParaSync.config.extrato; }
     await fetch(`${SB_URL}/rest/v1/prd_mensagens?para=eq.${CANAL}&de=eq.${p}`,{method:'DELETE',headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-    const r=await fetch(`${SB_URL}/rest/v1/prd_mensagens`,{method:'POST',headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({para:CANAL,de:p,nome:p,texto:JSON.stringify(state),lida:false})});
+    const r=await fetch(`${SB_URL}/rest/v1/prd_mensagens`,{method:'POST',headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({para:CANAL,de:p,nome:p,texto:JSON.stringify(stateParaSync),lida:false})});
     if(r.ok){ localStorage.setItem('financas_jr_last_sync',new Date().toISOString()); setSyncUI('ok','✓ Sincronizado — '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})); atualizarUltimaSinc(); }
     else setSyncUI('err','Erro ao sincronizar');
   }catch(e){ setSyncUI('err','Sem conexão'); }
@@ -1268,11 +1271,20 @@ function garantirMensalidadeCC(){
 function toast(msg){ const t=document.createElement('div'); t.style.cssText='position:fixed;bottom:88px;left:50%;transform:translateX(-50%);background:#2a2a4a;color:#fff;padding:9px 18px;border-radius:18px;font-size:.82rem;z-index:999;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.5);border:1px solid var(--border)'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2500); }
 
 // ===== INIT =====
+// Injeta sempre o extrato do código-fonte (nunca do Supabase)
+function fixarExtrato(){
+  if(!state.config) state.config = {};
+  state.config.extrato = ESTADO_INICIAL.config.extrato;
+  if(!state.config.saldoAtual) state.config.saldoAtual = ESTADO_INICIAL.config.saldoAtual;
+}
+
 updateHeader();
+fixarExtrato();
 renderAll();
 // Sempre puxa dados do servidor ao abrir (funciona mesmo sem perfil)
 setSyncUI('sync','🔄 Carregando dados...');
 pullSync().then(()=>{
+  fixarExtrato(); // garante extrato mesmo após sync
   renderAll();
   const temDados = state.contas.length>0 || state.outros.length>0 || state.credito.length>0;
   if(getPerfil() && temDados) pushSync();
