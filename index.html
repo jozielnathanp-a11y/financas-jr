@@ -597,7 +597,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v12_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v13_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -709,7 +709,12 @@ async function pullSync(){
     }
     if(!melhor) return;
     const localTotal=state.contas.length+state.outros.length+state.credito.length+state.vales.length;
-    if(melhorTotal>localTotal || localTotal===0){ state=mergeState(state,melhor); save(false); renderAll(); }
+    if(melhorTotal>localTotal || localTotal===0){ state=mergeState(state,melhor); }
+    // Sempre preserva extrato e saldoAtual do código-fonte (não do Supabase)
+    if(!state.config) state.config={};
+    state.config.extrato   = ESTADO_INICIAL.config.extrato;
+    if(!state.config.saldoAtual) state.config.saldoAtual = ESTADO_INICIAL.config.saldoAtual;
+    save(false); renderAll();
     setSyncUI('ok','✓ Sincronizado'); atualizarUltimaSinc();
   }catch(e){ setSyncUI('err','Erro na sincronização'); }
 }
