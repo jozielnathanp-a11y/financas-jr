@@ -224,35 +224,63 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
   <!-- ===== VISÃO GERAL ===== -->
   <div class="tab-page active" id="tab-visao">
-    <div class="saldo-grid">
-      <div class="saldo-card entrada"><div class="label">Entradas</div><div class="value" id="v-entradas">R$ 0</div></div>
-      <div class="saldo-card saida"><div class="label">Saídas</div><div class="value" id="v-saidas">R$ 0</div></div>
-      <div class="saldo-card saldo full"><div class="label">Saldo do Mês</div><div class="value" id="v-saldo">R$ 0</div></div>
+
+    <!-- SALDO PRINCIPAL -->
+    <div style="background:linear-gradient(135deg,#1a1a4e,#2d2d7e);border-radius:16px;padding:20px;margin-bottom:10px;border:1px solid rgba(108,99,255,.4);text-align:center;">
+      <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">💰 Saldo Atual</div>
+      <div id="v-saldo" style="font-size:2rem;font-weight:800;color:#fff">R$ 0</div>
+      <div id="v-saldo-sub" style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:4px"></div>
     </div>
 
-    <!-- Calendário recebimentos -->
-    <div class="card">
-      <div class="card-title"><span class="icon">🗓️</span> Calendário de Recebimentos</div>
-      <div id="cal-recebimentos"></div>
+    <!-- GRID 4 CARDS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div class="saldo-card entrada">
+        <div class="label">✅ Já Paguei</div>
+        <div class="value" id="v-ja-pago">R$ 0</div>
+      </div>
+      <div class="saldo-card" style="border-color:rgba(255,209,102,.3)">
+        <div class="label">⏳ A Pagar</div>
+        <div class="value" style="color:var(--yellow)" id="v-a-pagar">R$ 0</div>
+      </div>
+      <div class="saldo-card" style="border-color:rgba(255,77,109,.3)">
+        <div class="label">⚠️ Em Atraso</div>
+        <div class="value" style="color:var(--red)" id="v-atrasado">R$ 0</div>
+      </div>
+      <div class="saldo-card credito">
+        <div class="label">💳 Fatura CC</div>
+        <div class="value" id="v-fatura-cc">R$ 0</div>
+      </div>
     </div>
 
-    <!-- Salários -->
+    <!-- CONTAS EM ATRASO -->
+    <div id="bloco-atraso" style="display:none;background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);border-radius:12px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--red);margin-bottom:8px">⚠️ Em Atraso — Pague logo!</div>
+      <div id="v-lista-atraso"></div>
+    </div>
+
+    <!-- A PAGAR -->
     <div class="card">
-      <div class="card-title"><span class="icon">💼</span> Salários & Renda</div>
+      <div class="card-title"><span class="icon">⏳</span> A Pagar este mês</div>
+      <div id="v-lista-pagar"></div>
+    </div>
+
+    <!-- ENTRADAS -->
+    <div class="card">
+      <div class="card-title"><span class="icon">💼</span> Entradas do Mês</div>
       <div id="v-salarios"></div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;">
-        <span style="font-size:.78rem;color:var(--text2)">Total de renda</span>
+        <span style="font-size:.78rem;color:var(--text2)">Total entradas</span>
         <span style="font-size:.98rem;font-weight:700;color:var(--green)" id="v-total-renda">R$ 0</span>
       </div>
     </div>
 
-    <!-- Contas pendentes -->
+    <!-- Calendário recebimentos -->
     <div class="card">
-      <div class="card-title"><span class="icon">⚠️</span> Contas Pendentes</div>
-      <div id="v-contas-pendentes"></div>
+      <div class="card-title"><span class="icon">🗓️</span> Próximos Recebimentos</div>
+      <div id="cal-recebimentos"></div>
     </div>
 
-    <!-- Outros resumo -->
+    <!-- Gastos por categoria -->
     <div class="card">
       <div class="card-title"><span class="icon">📦</span> Gastos por Categoria</div>
       <div id="v-categorias"></div>
@@ -560,6 +588,8 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
+const DATA_VERSION = 'v3_20260615'; // muda aqui para forçar reset do cache
+
 const ESTADO_INICIAL = {
   contas: [
     {nome:'Condomínio Porto Real', valor:463.66, vencimento:'2026-06-16', pagamento:'salario_rayane', status:'pendente', dataPago:'', obs:'AP 048 — Parcela 19 de 37', fixa:'sim'},
@@ -585,13 +615,18 @@ const ESTADO_INICIAL = {
   config: {salJ:4260.92, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10}
 };
 
+// Se a versão dos dados mudou, descarta o cache antigo
+if(localStorage.getItem('financas_jr_version') !== DATA_VERSION){
+  localStorage.removeItem('financas_jr');
+  localStorage.setItem('financas_jr_version', DATA_VERSION);
+}
+
 let salvo = localStorage.getItem('financas_jr');
 let state;
 if(salvo){
   state = JSON.parse(salvo);
-  // Se o salvo estiver zerado, usa o inicial
-  const total = (state.contas||[]).length+(state.outros||[]).length+(state.credito||[]).length;
-  if(total === 0) state = JSON.parse(JSON.stringify(ESTADO_INICIAL));
+  // Garante que config tenha salário correto
+  if(!state.config || !state.config.salJ) state.config = ESTADO_INICIAL.config;
 } else {
   state = JSON.parse(JSON.stringify(ESTADO_INICIAL));
 }
@@ -707,20 +742,67 @@ function showTab(id){ document.querySelectorAll('.tab-page').forEach(t=>t.classL
 // ===== RENDER VISÃO =====
 function renderVisao(){
   const cfg=state.config;
-  // totais
-  const totContas = filtrarMes(state.contas,'vencimento').filter(c=>c.status==='pago').reduce((a,c)=>a+parseFloat(c.valor||0),0);
-  const totOutros  = filtrarMes(state.outros).reduce((a,o)=>a+parseFloat(o.valor||0),0);
-  const totCC     = filtrarMes(state.credito).reduce((a,c)=>a+parseFloat(c.valor||0),0);
-  const totalSaidas= totContas+totOutros+totCC;
   const totalRenda = parseFloat(cfg.salJ||0)+parseFloat(cfg.salR||0);
   const valesM     = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
   const totVales   = valesM.reduce((a,v)=>a+parseFloat(v.valor||0),0);
-  const saldo = totalRenda+totVales-totalSaidas;
+  const totalEntradas = totalRenda+totVales;
 
-  document.getElementById('v-entradas').textContent=fmt(totalRenda+totVales);
-  document.getElementById('v-saidas').textContent=fmt(totalSaidas);
-  const se=document.getElementById('v-saldo'); se.textContent=fmt(saldo); se.style.color=saldo>=0?'var(--green)':'var(--red)';
-  document.getElementById('v-total-renda').textContent=fmt(totalRenda+totVales);
+  // Contas separadas por status
+  const contasPagas     = state.contas.filter(c=>c.status==='pago');
+  const contasPendentes = state.contas.filter(c=>c.status==='pendente');
+  const contasAtrasadas = state.contas.filter(c=>c.status==='atrasado');
+
+  const totPago     = contasPagas.reduce((a,c)=>a+parseFloat(c.valor||0),0);
+  const totPendente = contasPendentes.reduce((a,c)=>a+parseFloat(c.valor||0),0);
+  const totAtrasado = contasAtrasadas.reduce((a,c)=>a+parseFloat(c.valor||0),0);
+  const totOutros   = filtrarMes(state.outros).reduce((a,o)=>a+parseFloat(o.valor||0),0);
+  const totCC       = filtrarMes(state.credito).reduce((a,c)=>a+parseFloat(c.valor||0),0);
+
+  // Saldo = entradas - (já pago + outros gastos + crédito)
+  const totalGasto = totPago + totOutros + totCC;
+  const saldo = totalEntradas - totalGasto - totPendente - totAtrasado;
+
+  // Saldo principal
+  const se=document.getElementById('v-saldo');
+  se.textContent=fmt(saldo);
+  se.style.color=saldo>=0?'var(--green)':'var(--red)';
+  document.getElementById('v-saldo-sub').textContent=
+    saldo>=0?'Você está no positivo 💪':'Atenção: gastos acima da renda ⚠️';
+
+  // 4 cards
+  document.getElementById('v-ja-pago').textContent=fmt(totPago+totOutros+totCC);
+  document.getElementById('v-a-pagar').textContent=fmt(totPendente);
+  document.getElementById('v-atrasado').textContent=fmt(totAtrasado);
+  document.getElementById('v-fatura-cc').textContent=fmt(totCC);
+  document.getElementById('v-total-renda').textContent=fmt(totalEntradas);
+
+  // Bloco atraso
+  const blocoAtr=document.getElementById('bloco-atraso');
+  if(contasAtrasadas.length>0){
+    blocoAtr.style.display='block';
+    document.getElementById('v-lista-atraso').innerHTML=contasAtrasadas.map(c=>
+      `<div class="resumo-item">
+        <div class="resumo-cat"><div class="resumo-circle" style="background:var(--red)"></div><div><div style="font-size:.83rem;font-weight:600">${c.nome}</div><div style="font-size:.68rem;color:var(--text2)">Venceu ${fmtDate(c.vencimento)} • ${pgLabel[c.pagamento]||''}</div></div></div>
+        <span class="resumo-val" style="color:var(--red)">${fmt(c.valor)}</span>
+      </div>`
+    ).join('');
+  } else { blocoAtr.style.display='none'; }
+
+  // A pagar
+  const aPagar=[...contasPendentes];
+  document.getElementById('v-lista-pagar').innerHTML=aPagar.length===0
+    ?'<div class="empty" style="padding:10px"><span style="font-size:1.4rem">✅</span><p>Tudo em dia!</p></div>'
+    :aPagar.map(c=>
+      `<div class="resumo-item">
+        <div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div><div><div style="font-size:.83rem;font-weight:600">${c.nome}</div><div style="font-size:.68rem;color:var(--text2)">Vence ${fmtDate(c.vencimento)} • ${pgLabel[c.pagamento]||''}</div></div></div>
+        <span class="resumo-val" style="color:var(--yellow)">${fmt(c.valor)}</span>
+      </div>`
+    ).join('');
+
+  // Salários
+  document.getElementById('v-salarios').innerHTML=`
+    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-j">J</div><div><div class="salary-name">Josiel</div><div class="salary-sub">Salário + iFood + Premiação</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salJ||0))}</div></div>
+    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-r">R</div><div><div class="salary-name">Rayane</div><div class="salary-sub">Salário</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salR||0))}</div></div>`;
 
   // Calendário
   const hoje=new Date(); const dh=(hoje.getMonth()===mesAtivo&&hoje.getFullYear()===anoAtivo)?hoje.getDate():0;
@@ -746,18 +828,7 @@ function renderVisao(){
     </div>`;
   }).join('');
 
-  // Salários
-  document.getElementById('v-salarios').innerHTML=`
-    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-j">J</div><div><div class="salary-name">Josiel</div><div class="salary-sub">Salário + Vale + iFood + Premiação</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salJ||0))}</div></div>
-    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-r">R</div><div><div class="salary-name">Rayane</div><div class="salary-sub">Salário + Coper</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salR||0))}</div></div>`;
-
-  // Contas pendentes
-  const pend=state.contas.filter(c=>c.status!=='pago');
-  document.getElementById('v-contas-pendentes').innerHTML=pend.length===0
-    ?'<div class="empty" style="padding:12px"><span class="empty-icon" style="font-size:1.5rem">✅</span><p>Tudo em dia!</p></div>'
-    :pend.slice(0,4).map(c=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${c.status==='atrasado'?'var(--red)':'var(--yellow)'}"></div>${c.nome}</div><span class="resumo-val" style="color:${c.status==='atrasado'?'var(--red)':'var(--yellow)'}">${fmt(c.valor)}</span></div>`).join('');
-
-  // Categorias (outros+credito)
+  // Categorias
   const cats={};
   filtrarMes(state.outros).forEach(o=>{ const k=o.cat||'outros'; cats[k]=(cats[k]||0)+parseFloat(o.valor||0); });
   filtrarMes(state.credito).forEach(c=>{ const k=c.cat||'outros'; cats[k]=(cats[k]||0)+parseFloat(c.valor||0); });
