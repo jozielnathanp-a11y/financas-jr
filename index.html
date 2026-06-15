@@ -591,16 +591,24 @@ async function pushSync(){
 }
 
 async function pullSync(){
-  const p=getPerfil(); if(!p) return;
-  const outro=p==='josiel'?'rayane':'josiel';
   try{
-    const r=await fetch(`${SB_URL}/rest/v1/prd_mensagens?para=eq.${CANAL}&de=eq.${outro}&order=ts.desc&limit=1`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}});
+    const r=await fetch(`${SB_URL}/rest/v1/prd_mensagens?para=eq.${CANAL}&order=ts.desc&limit=10`,{headers:{apikey:SB_KEY,'Authorization':'Bearer '+SB_KEY}});
     const rows=await r.json();
     if(!rows||!rows.length) return;
-    const rem=JSON.parse(rows[0].texto);
-    state=mergeState(state,rem); save(false); renderAll();
-    setSyncUI('ok','✓ Dados de '+(outro==='josiel'?'Josiel':'Rayane')+' recebidos!'); atualizarUltimaSinc();
-  }catch(e){}
+    // Pega o registro com mais dados (zapia ou outro usuário)
+    let melhor=null, melhorTotal=0;
+    for(const row of rows){
+      try{
+        const rem=JSON.parse(row.texto);
+        const total=(rem.contas||[]).length+(rem.outros||[]).length+(rem.credito||[]).length+(rem.vales||[]).length;
+        if(total>melhorTotal){ melhorTotal=total; melhor=rem; }
+      }catch(e){}
+    }
+    if(!melhor) return;
+    const localTotal=state.contas.length+state.outros.length+state.credito.length+state.vales.length;
+    if(melhorTotal>localTotal || localTotal===0){ state=mergeState(state,melhor); save(false); renderAll(); }
+    setSyncUI('ok','✓ Sincronizado'); atualizarUltimaSinc();
+  }catch(e){ setSyncUI('err','Erro na sincronização'); }
 }
 
 function hashC(c){ return c.nome+'|'+(c.vencimento||'')+'|'+c.valor; }
@@ -1029,15 +1037,13 @@ function toast(msg){ const t=document.createElement('div'); t.style.cssText='pos
 // ===== INIT =====
 updateHeader();
 renderAll();
-// No init: sempre puxar primeiro; só empurrar se tiver dados locais
-if(getPerfil()){
-  setSyncUI('sync','🔄 Buscando dados...');
-  pullSync().then(()=>{
-    // Só faz push se tiver pelo menos algum dado local
-    const temDados = state.contas.length>0 || state.outros.length>0 || state.credito.length>0 || state.vales.length>0;
-    if(temDados) pushSync();
-  });
-}
+// Sempre puxa dados do servidor ao abrir (funciona mesmo sem perfil)
+setSyncUI('sync','🔄 Carregando dados...');
+pullSync().then(()=>{
+  renderAll();
+  const temDados = state.contas.length>0 || state.outros.length>0 || state.credito.length>0;
+  if(getPerfil() && temDados) pushSync();
+});
 </script>
 </body>
 </html>
