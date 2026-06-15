@@ -213,10 +213,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <div class="nav-tabs">
   <div class="nav-tab active"  onclick="showTab('visao','this')">📊 Visão</div>
+  <div class="nav-tab"         onclick="showTab('extrato','this')">📄 Extrato</div>
   <div class="nav-tab"         onclick="showTab('contas','this')">📋 Contas</div>
   <div class="nav-tab"         onclick="showTab('outros','this')">📦 Outros</div>
   <div class="nav-tab"         onclick="showTab('credito','this')">💳 Crédito</div>
-  <div class="nav-tab"         onclick="showTab('vales','this')">🎟️ Vales</div>
   <div class="nav-tab"         onclick="showTab('config','this')">⚙️ Config</div>
 </div>
 
@@ -286,14 +286,36 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <div class="card-title"><span class="icon">📦</span> Gastos por Categoria</div>
       <div id="v-categorias"></div>
     </div>
+  </div>
 
-    <!-- RESUMO DO EXTRATO -->
+  <!-- ===== EXTRATO ===== -->
+  <div class="tab-page" id="tab-extrato">
+
+    <!-- JOSIEL -->
     <div class="card">
-      <div class="card-title"><span class="icon">📊</span> Resumo do Extrato</div>
-      <div id="v-resumo-extrato">
-        <div class="empty" style="padding:10px"><p>Nenhum extrato lançado</p></div>
+      <div class="card-title"><span class="icon">👤</span> Extrato Josiel — <span style="color:var(--text2);font-weight:400;font-size:.8rem" id="ex-periodo-j">—</span></div>
+      <div id="ex-josiel-resumo"></div>
+      <div id="ex-josiel-itens" style="margin-top:10px"></div>
+    </div>
+
+    <!-- RAYANE -->
+    <div class="card">
+      <div class="card-title"><span class="icon">👤</span> Extrato Rayane</div>
+      <div id="ex-rayane-resumo">
+        <div class="empty" style="padding:16px">
+          <div style="font-size:2rem;margin-bottom:8px">⏳</div>
+          <p style="font-size:.83rem">Aguardando Rayane enviar o extrato no grupo</p>
+          <p style="font-size:.72rem;color:var(--text2);margin-top:4px">Pode mandar PDF ou print pelo WhatsApp</p>
+        </div>
       </div>
     </div>
+
+    <!-- CONSOLIDADO -->
+    <div class="card" id="ex-consolidado-card" style="display:none">
+      <div class="card-title"><span class="icon">📊</span> Consolidado do Casal</div>
+      <div id="ex-consolidado"></div>
+    </div>
+
   </div>
 
   <!-- ===== CONTAS FIXAS ===== -->
@@ -597,7 +619,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v15_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v16_20260615'; // muda aqui para forçar reset do cache
 
 // Extrato e saldo ficam FORA do state — nunca são apagados pelo sync
 const EXTRATO_FIXO = {
@@ -887,60 +909,54 @@ function renderVisao(){
   document.getElementById('v-categorias').innerHTML=sorted.length===0
     ?'<div class="empty" style="padding:10px"><p>Nenhum gasto registrado</p></div>'
     :sorted.map(([k,v])=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${catLabel[k]?.c||'#aaa'}"></div>${catLabel[k]?.l||k}</div><span class="resumo-val">${fmt(v)}</span></div>`).join('');
+}
 
-  // ===== RESUMO DO EXTRATO =====
-  const ex = EXTRATO_FIXO;
-  const elEx = document.getElementById('v-resumo-extrato');
-  if(!ex || !ex.entradas){ elEx.innerHTML='<div class="empty" style="padding:10px"><p>Nenhum extrato lançado</p></div>'; return; }
+// ===== RENDER EXTRATO =====
+function renderExtrato(){
+  renderExtratoBloco(EXTRATO_FIXO, 'Josiel', 'ex-josiel-resumo', 'ex-josiel-itens', 'ex-periodo-j');
+  // Rayane: aguardando extrato
+}
 
-  // Agrupa itens por categoria
+function renderExtratoBloco(ex, nome, idResumo, idItens, idPeriodo){
+  if(!ex || !ex.entradas) return;
+  if(idPeriodo) document.getElementById(idPeriodo).textContent = ex.periodo||'';
+
+  // Agrupa por categoria
   const catTotais={};
   (ex.itens||[]).forEach(i=>{ const k=i.cat||'outros'; catTotais[k]=(catTotais[k]||0)+i.valor; });
   const catOrdenada = Object.entries(catTotais).sort((a,b)=>b[1]-a[1]);
-
-  // Detecta gastos "desnecessários" (lazer, lojas/compras não essenciais)
   const desnecessarios = (ex.itens||[]).filter(i=>['lazer','compras'].includes(i.cat));
   const totDesn = desnecessarios.reduce((a,i)=>a+i.valor,0);
   const pctDesn = ex.saidas>0 ? ((totDesn/ex.saidas)*100).toFixed(0) : 0;
 
-  elEx.innerHTML=`
-    <!-- Barra entradas x saídas -->
-    <div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:.72rem;color:var(--text2)">📅 ${ex.periodo}</span>
-        <span style="font-size:.72rem;color:var(--text2)">Banco Inter</span>
+  document.getElementById(idResumo).innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+      <div style="background:rgba(0,210,100,.08);border:1px solid rgba(0,210,100,.2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:.63rem;color:var(--green);margin-bottom:2px">📥 Entradas</div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--green)">${fmt(ex.entradas)}</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
-        <div style="background:rgba(0,210,100,.08);border:1px solid rgba(0,210,100,.2);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:.65rem;color:var(--green);margin-bottom:2px">📥 Entradas</div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--green)">${fmt(ex.entradas)}</div>
-        </div>
-        <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:.65rem;color:var(--red);margin-bottom:2px">📤 Saídas</div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--red)">${fmt(ex.saidas)}</div>
-        </div>
-        <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:8px;text-align:center">
-          <div style="font-size:.65rem;color:var(--primary);margin-bottom:2px">💰 Saldo</div>
-          <div style="font-size:.9rem;font-weight:700;color:var(--primary)">${fmt(ex.saldoBanco)}</div>
-        </div>
+      <div style="background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:.63rem;color:var(--red);margin-bottom:2px">📤 Saídas</div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--red)">${fmt(ex.saidas)}</div>
       </div>
-
-      <!-- Barra visual proporcional -->
-      <div style="background:var(--card2);border-radius:8px;height:8px;overflow:hidden;margin-bottom:4px">
-        <div style="height:100%;width:${Math.min(100,(ex.saidas/ex.entradas*100)).toFixed(0)}%;background:linear-gradient(90deg,var(--green),var(--red));border-radius:8px"></div>
+      <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:.63rem;color:var(--primary);margin-bottom:2px">💰 Saldo</div>
+        <div style="font-size:.85rem;font-weight:700;color:var(--primary)">${fmt(ex.saldoBanco)}</div>
       </div>
-      <div style="font-size:.68rem;color:var(--text2);text-align:right">${(ex.saidas/ex.entradas*100).toFixed(0)}% da renda gasto</div>
     </div>
+    <div style="background:var(--card2);border-radius:8px;height:6px;overflow:hidden;margin-bottom:3px">
+      <div style="height:100%;width:${Math.min(100,(ex.saidas/ex.entradas*100)).toFixed(0)}%;background:linear-gradient(90deg,var(--green),var(--red));border-radius:8px"></div>
+    </div>
+    <div style="font-size:.67rem;color:var(--text2);text-align:right;margin-bottom:12px">${(ex.saidas/ex.entradas*100).toFixed(0)}% da renda gasto</div>
 
-    <!-- Onde foi o dinheiro -->
-    <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Onde foi o dinheiro</div>
+    <div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Onde foi o dinheiro</div>
     ${catOrdenada.map(([k,v])=>{
-      const pct = (v/ex.saidas*100).toFixed(0);
-      const cor = catLabel[k]?.c||'#aaa';
-      return `<div style="margin-bottom:8px">
+      const pct=(v/ex.saidas*100).toFixed(0);
+      const cor=catLabel[k]?.c||'#aaa';
+      return `<div style="margin-bottom:7px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-          <span style="font-size:.78rem">${catLabel[k]?.l||k}</span>
-          <span style="font-size:.78rem;font-weight:600">${fmt(v)} <span style="color:var(--text2);font-weight:400">(${pct}%)</span></span>
+          <span style="font-size:.76rem">${catLabel[k]?.l||k}</span>
+          <span style="font-size:.76rem;font-weight:600">${fmt(v)} <span style="color:var(--text2);font-weight:400">(${pct}%)</span></span>
         </div>
         <div style="background:var(--card2);border-radius:4px;height:5px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:${cor};border-radius:4px"></div>
@@ -948,13 +964,17 @@ function renderVisao(){
       </div>`;
     }).join('')}
 
-    ${totDesn>0?`
-    <!-- Alerta gastos desnecessários -->
-    <div style="margin-top:10px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px">
-      <div style="font-size:.75rem;font-weight:700;color:var(--yellow);margin-bottom:6px">⚠️ Gastos que podem ser reduzidos (${pctDesn}%)</div>
-      ${desnecessarios.map(i=>`<div class="resumo-item" style="padding:4px 0"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>${i.desc}</div><span class="resumo-val" style="color:var(--yellow)">${fmt(i.valor)}</span></div>`).join('')}
-      <div style="font-size:.68rem;color:var(--text2);margin-top:6px">Total: ${fmt(totDesn)} — se economizar metade, sobra mais ${fmt(totDesn/2)} por mês 💡</div>
+    ${totDesn>0?`<div style="margin-top:10px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:10px">
+      <div style="font-size:.73rem;font-weight:700;color:var(--yellow);margin-bottom:6px">⚠️ Pode reduzir (${pctDesn}% das saídas)</div>
+      ${desnecessarios.map(i=>`<div class="resumo-item" style="padding:3px 0"><div class="resumo-cat"><div class="resumo-circle" style="background:var(--yellow)"></div>${i.desc}</div><span class="resumo-val" style="color:var(--yellow)">${fmt(i.valor)}</span></div>`).join('')}
+      <div style="font-size:.67rem;color:var(--text2);margin-top:5px">💡 Economizando metade sobra mais ${fmt(totDesn/2)}/mês</div>
     </div>`:''}
+  `;
+
+  // Lista todos os itens
+  document.getElementById(idItens).innerHTML=`
+    <div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Todos os lançamentos</div>
+    ${(ex.itens||[]).map(i=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${catLabel[i.cat]?.c||'#aaa'}"></div>${i.desc}</div><span class="resumo-val" style="color:var(--red)">-${fmt(i.valor)}</span></div>`).join('')}
   `;
 }
 
@@ -1160,7 +1180,7 @@ function editarSaldo(){
   renderAll();
 }
 
-function renderAll(){ renderVisao(); renderContas(); renderOutros(); renderCredito(); renderVales(); renderConfig(); }
+function renderAll(){ renderVisao(); renderExtrato(); renderContas(); renderOutros(); renderCredito(); renderVales(); renderConfig(); }
 
 // ===== FAB =====
 function abrirFAB(){ document.getElementById('mo-fab').classList.add('open'); }
