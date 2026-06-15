@@ -560,12 +560,46 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-let state = JSON.parse(localStorage.getItem('financas_jr') || '{}');
-if(!state.contas)    state.contas    = [];
-if(!state.outros)    state.outros    = [];
-if(!state.vales)     state.vales     = [];
-if(!state.credito)   state.credito   = [];
-if(!state.config)    state.config    = { salJ:0, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:'' };
+const ESTADO_INICIAL = {
+  contas: [
+    {nome:'Condomínio Porto Real', valor:463.66, vencimento:'2026-06-16', pagamento:'salario_rayane', status:'pendente', dataPago:'', obs:'AP 048 — Parcela 19 de 37', fixa:'sim'},
+    {nome:'SANEPAR — Água/Esgoto', valor:123.98, vencimento:'2026-05-09', pagamento:'salario_rayane', status:'atrasado', dataPago:'', obs:'Juros: R$ 2,63 — Titular: Rayane', fixa:'sim'}
+  ],
+  outros: [
+    {desc:'Fatura Banco PAN', valor:500.31, data:'2026-06-01', cat:'fatura', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Anderson Braz', valor:190.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Panificadora', valor:96.05, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Maria Eliane', valor:370.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Farmácias', valor:133.45, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'}
+  ],
+  vales: [],
+  credito: [
+    {desc:'Claro — Fatura', valor:39.83, data:'2026-06-09', cat:'conta', pessoa:'josiel'},
+    {desc:'Claro *42988819420', valor:34.90, data:'2026-06-07', cat:'conta', pessoa:'josiel'},
+    {desc:'PicPay Seguro Carteira', valor:5.90, data:'2026-06-07', cat:'outros', pessoa:'josiel'},
+    {desc:'Google Zapia AI Personal', valor:51.99, data:'2026-06-07', cat:'outros', pessoa:'josiel'},
+    {desc:'Hiper Dal Pozzo', valor:59.99, data:'2026-06-06', cat:'compras', pessoa:'josiel'},
+    {desc:'Hiper Dal Pozzo', valor:1034.70, data:'2026-06-06', cat:'compras', pessoa:'josiel'}
+  ],
+  config: {salJ:4260.92, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10}
+};
+
+let salvo = localStorage.getItem('financas_jr');
+let state;
+if(salvo){
+  state = JSON.parse(salvo);
+  // Se o salvo estiver zerado, usa o inicial
+  const total = (state.contas||[]).length+(state.outros||[]).length+(state.credito||[]).length;
+  if(total === 0) state = JSON.parse(JSON.stringify(ESTADO_INICIAL));
+} else {
+  state = JSON.parse(JSON.stringify(ESTADO_INICIAL));
+}
+if(!state.contas)  state.contas  = [];
+if(!state.outros)  state.outros  = [];
+if(!state.vales)   state.vales   = [];
+if(!state.credito) state.credito = [];
+if(!state.config)  state.config  = ESTADO_INICIAL.config;
 
 let mesAtivo = new Date().getMonth();
 let anoAtivo = new Date().getFullYear();
