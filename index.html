@@ -628,7 +628,7 @@ function atualizarUltimaSinc(){
   el.textContent=l?'Última sync: '+new Date(l).toLocaleString('pt-BR'):'';
 }
 
-setInterval(()=>{ if(getPerfil()){ pullSync().then(pushSync); } },30000);
+setInterval(()=>{ if(getPerfil()){ pullSync(); } },30000);
 
 // ===== SAVE =====
 function save(doSync=true){
@@ -1029,7 +1029,15 @@ function toast(msg){ const t=document.createElement('div'); t.style.cssText='pos
 // ===== INIT =====
 updateHeader();
 renderAll();
-if(getPerfil()){ setSyncUI('sync','🔄 Buscando dados...'); pullSync().then(()=>pushSync()); }
+// No init: sempre puxar primeiro; só empurrar se tiver dados locais
+if(getPerfil()){
+  setSyncUI('sync','🔄 Buscando dados...');
+  pullSync().then(()=>{
+    // Só faz push se tiver pelo menos algum dado local
+    const temDados = state.contas.length>0 || state.outros.length>0 || state.credito.length>0 || state.vales.length>0;
+    if(temDados) pushSync();
+  });
+}
 </script>
 </body>
 </html>
