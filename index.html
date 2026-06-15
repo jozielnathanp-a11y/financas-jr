@@ -621,7 +621,10 @@ function mergeState(local,rem){
   const eO=new Set(local.outros.map(hashO));  const nO=(rem.outros||[]).filter(o=>!eO.has(hashO(o)));
   const eV=new Set(local.vales.map(hashV));   const nV=(rem.vales||[]).filter(v=>!eV.has(hashV(v)));
   const eCC=new Set(local.credito.map(hashCC)); const nCC=(rem.credito||[]).filter(c=>!eCC.has(hashCC(c)));
-  return { contas:[...local.contas,...nC], outros:[...local.outros,...nO], vales:[...local.vales,...nV], credito:[...local.credito,...nCC], config:local.config };
+  // Usa config remoto se o local estiver zerado (salários = 0)
+  const localCfgVazio = !local.config || (!local.config.salJ && !local.config.salR);
+  const cfg = localCfgVazio ? (rem.config||local.config) : {...(rem.config||{}), ...local.config};
+  return { contas:[...local.contas,...nC], outros:[...local.outros,...nO], vales:[...local.vales,...nV], credito:[...local.credito,...nCC], config:cfg };
 }
 
 async function sincronizarAgora(){
