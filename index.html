@@ -588,7 +588,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v3_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v4_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -601,7 +601,8 @@ const ESTADO_INICIAL = {
     {desc:'Panificadora', valor:96.05, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
     {desc:'Maria Eliane', valor:370.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
     {desc:'Farmácias', valor:133.45, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'}
+    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
+    {desc:'Fatura Brasil Card (mês anterior)', valor:1264.50, data:'2026-06-06', cat:'fatura', pagoPor:'salario_josiel', obs:'PIX para conta própria — pagamento cartão maio'}
   ],
   vales: [],
   credito: [
@@ -612,7 +613,15 @@ const ESTADO_INICIAL = {
     {desc:'Hiper Dal Pozzo', valor:59.99, data:'2026-06-06', cat:'compras', pessoa:'josiel'},
     {desc:'Hiper Dal Pozzo', valor:1034.70, data:'2026-06-06', cat:'compras', pessoa:'josiel'}
   ],
-  config: {salJ:4260.92, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10}
+  config: {
+    salJ:4260.92, salR:0,
+    ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
+    extrasJ:[
+      {desc:'Ruan Henrique', valor:40.00, data:'2026-06-01'},
+      {desc:'Devolução Maria Eliane', valor:30.00, data:'2026-06-03'},
+      {desc:'Douglas Matheus', valor:80.00, data:'2026-06-09'}
+    ]
+  }
 };
 
 // Se a versão dos dados mudou, descarta o cache antigo
@@ -745,7 +754,8 @@ function renderVisao(){
   const totalRenda = parseFloat(cfg.salJ||0)+parseFloat(cfg.salR||0);
   const valesM     = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
   const totVales   = valesM.reduce((a,v)=>a+parseFloat(v.valor||0),0);
-  const totalEntradas = totalRenda+totVales;
+  const totExtras  = (cfg.extrasJ||[]).reduce((a,e)=>a+parseFloat(e.valor||0),0);
+  const totalEntradas = totalRenda+totVales+totExtras;
 
   // Contas separadas por status
   const contasPagas     = state.contas.filter(c=>c.status==='pago');
@@ -800,9 +810,15 @@ function renderVisao(){
     ).join('');
 
   // Salários
+  const extrasHTML = (cfg.extrasJ||[]).length>0
+    ? (cfg.extrasJ||[]).map(e=>`<div class="salary-row" style="opacity:.8"><div class="salary-person"><div class="salary-avatar" style="background:var(--card2);font-size:.7rem">+</div><div><div class="salary-name" style="font-size:.82rem">${e.desc}</div><div class="salary-sub">${fmtDate(e.data)}</div></div></div><div class="salary-value" style="font-size:.9rem;color:var(--green)">${fmt(e.valor)}</div></div>`).join('')
+    : '';
   document.getElementById('v-salarios').innerHTML=`
     <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-j">J</div><div><div class="salary-name">Josiel</div><div class="salary-sub">Salário + iFood + Premiação</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salJ||0))}</div></div>
-    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-r">R</div><div><div class="salary-name">Rayane</div><div class="salary-sub">Salário</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salR||0))}</div></div>`;
+    <div class="salary-row"><div class="salary-person"><div class="salary-avatar av-r">R</div><div><div class="salary-name">Rayane</div><div class="salary-sub">Salário</div></div></div><div class="salary-value">${fmt(parseFloat(cfg.salR||0))}</div></div>
+    ${extrasHTML}
+    ${totExtras>0?`<div class="resumo-item" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span style="font-size:.75rem;color:var(--text2)">Entradas extras</span><span class="resumo-val" style="color:var(--green)">${fmt(totExtras)}</span></div>`:''}
+  `;
 
   // Calendário
   const hoje=new Date(); const dh=(hoje.getMonth()===mesAtivo&&hoje.getFullYear()===anoAtivo)?hoje.getDate():0;
