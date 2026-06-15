@@ -597,7 +597,31 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v14_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v15_20260615'; // muda aqui para forçar reset do cache
+
+// Extrato e saldo ficam FORA do state — nunca são apagados pelo sync
+const EXTRATO_FIXO = {
+  periodo: '01/06 a 15/06/2026',
+  entradas: 4410.92,
+  saidas: 3565.77,
+  saldoBanco: 845.15,
+  itens: [
+    {desc:'Fatura Banco PAN', valor:500.31, cat:'fatura'},
+    {desc:'Anderson Braz', valor:190.00, cat:'outros'},
+    {desc:'Panificadora', valor:96.05, cat:'alimentacao'},
+    {desc:'Maria Eliane', valor:370.00, cat:'outros'},
+    {desc:'Farmácias', valor:133.45, cat:'saude'},
+    {desc:'Supermercados', valor:166.96, cat:'alimentacao'},
+    {desc:'Fatura Brasil Card (maio)', valor:1264.50, cat:'fatura'},
+    {desc:'Restaurantes/Lanches', valor:107.86, cat:'lazer'},
+    {desc:'Uber/Transporte', valor:8.30, cat:'carro'},
+    {desc:'Google/Serviços', valor:33.98, cat:'outros'},
+    {desc:'Lojas/Presentes', valor:174.47, cat:'compras'},
+    {desc:'Transferências diversas', valor:185.00, cat:'outros'},
+    {desc:'Outros gastos', valor:335.09, cat:'outros'}
+  ]
+};
+const SALDO_BASE = 935.15;
 
 const ESTADO_INICIAL = {
   contas: [
@@ -624,28 +648,7 @@ const ESTADO_INICIAL = {
   config: {
     salJ:4260.92, salR:0,
     ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
-    saldoAtual: 935.15,
-    extrato: {
-      periodo: '01/06 a 15/06/2026',
-      entradas: 4410.92,
-      saidas: 3565.77,
-      saldoBanco: 845.15,
-      itens: [
-        {desc:'Fatura Banco PAN', valor:500.31, cat:'fatura'},
-        {desc:'Anderson Braz', valor:190.00, cat:'outros'},
-        {desc:'Panificadora', valor:96.05, cat:'alimentacao'},
-        {desc:'Maria Eliane', valor:370.00, cat:'outros'},
-        {desc:'Farmácias', valor:133.45, cat:'saude'},
-        {desc:'Supermercados', valor:166.96, cat:'alimentacao'},
-        {desc:'Fatura Brasil Card (maio)', valor:1264.50, cat:'fatura'},
-        {desc:'Restaurantes/Lanches', valor:107.86, cat:'lazer'},
-        {desc:'Uber/Transporte', valor:8.30, cat:'carro'},
-        {desc:'Google/Serviços', valor:33.98, cat:'outros'},
-        {desc:'Lojas/Presentes', valor:174.47, cat:'compras'},
-        {desc:'Transferências diversas', valor:185.00, cat:'outros'},
-        {desc:'Outros gastos', valor:335.09, cat:'outros'}
-      ]
-    }
+    saldoAtual: SALDO_BASE
   }
 };
 
@@ -787,7 +790,7 @@ function renderVisao(){
 
   // NOVA LÓGICA: saldo livre informado manualmente
   // Só desconta quando conta/gasto é marcado como PAGO
-  const saldoBase   = parseFloat(cfg.saldoAtual||0);
+  const saldoBase   = parseFloat(cfg.saldoAtual||SALDO_BASE);
   const totPagoContas = state.contas.filter(c=>c.status==='pago').reduce((a,c)=>a+parseFloat(c.valor||0),0);
   // Outros já marcados como pagos no extrato
   const totOutrosPagos = filtrarMes(state.outros).filter(o=>o.pago===true).reduce((a,o)=>a+parseFloat(o.valor||0),0);
@@ -886,7 +889,7 @@ function renderVisao(){
     :sorted.map(([k,v])=>`<div class="resumo-item"><div class="resumo-cat"><div class="resumo-circle" style="background:${catLabel[k]?.c||'#aaa'}"></div>${catLabel[k]?.l||k}</div><span class="resumo-val">${fmt(v)}</span></div>`).join('');
 
   // ===== RESUMO DO EXTRATO =====
-  const ex = cfg.extrato;
+  const ex = EXTRATO_FIXO;
   const elEx = document.getElementById('v-resumo-extrato');
   if(!ex || !ex.entradas){ elEx.innerHTML='<div class="empty" style="padding:10px"><p>Nenhum extrato lançado</p></div>'; return; }
 
