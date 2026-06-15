@@ -588,7 +588,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <script>
 // ===== STATE =====
-const DATA_VERSION = 'v6_20260615'; // muda aqui para forçar reset do cache
+const DATA_VERSION = 'v8_20260615'; // muda aqui para forçar reset do cache
 
 const ESTADO_INICIAL = {
   contas: [
@@ -601,8 +601,7 @@ const ESTADO_INICIAL = {
     {desc:'Panificadora', valor:96.05, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
     {desc:'Maria Eliane', valor:370.00, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
     {desc:'Farmácias', valor:133.45, data:'2026-06-01', cat:'outros', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'},
-    {desc:'Fatura Brasil Card (mês anterior)', valor:1264.50, data:'2026-06-06', cat:'fatura', pagoPor:'salario_josiel', obs:'PIX para conta própria — pagamento cartão maio'}
+    {desc:'Supermercados', valor:166.96, data:'2026-06-01', cat:'alimentacao', pagoPor:'salario_josiel', obs:'Extrato Inter'}
   ],
   vales: [],
   credito: [
@@ -613,9 +612,8 @@ const ESTADO_INICIAL = {
     {desc:'Hiper Dal Pozzo', valor:59.99, data:'2026-06-06', cat:'compras', pessoa:'josiel'},
     {desc:'Hiper Dal Pozzo', valor:1034.70, data:'2026-06-06', cat:'compras', pessoa:'josiel'}
   ],
-  config: {
-    salJ:4260.92, salR:0,
-    ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
+  config: {salJ:4260.92, salR:0, ccNome:'Brasil Card Digital', ccDig:'', ccLim:1219, ccVenc:10,
+    ajusteGastosDiarios: 54.05,
     extrasJ:[
       {desc:'Ruan Henrique', valor:40.00, data:'2026-06-01'},
       {desc:'Devolução Maria Eliane', valor:30.00, data:'2026-06-03'},
@@ -754,8 +752,9 @@ function renderVisao(){
   const totalRenda = parseFloat(cfg.salJ||0)+parseFloat(cfg.salR||0);
   const valesM     = state.vales.filter(v=>v.mes===mesAtivo&&v.ano===anoAtivo);
   const totVales   = valesM.reduce((a,v)=>a+parseFloat(v.valor||0),0);
-  const totExtras  = (cfg.extrasJ||[]).reduce((a,e)=>a+parseFloat(e.valor||0),0);
-  const totalEntradas = totalRenda+totVales+totExtras;
+  const totExtras  = 0; // extras já refletidas no saldo bancário
+  const ajuste     = parseFloat(cfg.ajusteGastosDiarios||0);
+  const totalEntradas = totalRenda+totVales;
 
   // Contas separadas por status
   const contasPagas     = state.contas.filter(c=>c.status==='pago');
@@ -768,19 +767,18 @@ function renderVisao(){
   const totOutros   = filtrarMes(state.outros).reduce((a,o)=>a+parseFloat(o.valor||0),0);
   const totCC       = filtrarMes(state.credito).reduce((a,c)=>a+parseFloat(c.valor||0),0);
 
-  // Saldo = entradas - (já pago + outros gastos + crédito)
-  const totalGasto = totPago + totOutros + totCC;
-  const saldo = totalEntradas - totalGasto - totPendente - totAtrasado;
+  // Saldo = entradas - tudo que já saiu ou está comprometido - ajuste gastos diários
+  const saldo = totalEntradas - totPago - totOutros - totCC - totPendente - totAtrasado - ajuste;
 
   // Saldo principal
   const se=document.getElementById('v-saldo');
   se.textContent=fmt(saldo);
   se.style.color=saldo>=0?'var(--green)':'var(--red)';
   document.getElementById('v-saldo-sub').textContent=
-    saldo>=0?'Você está no positivo 💪':'Atenção: gastos acima da renda ⚠️';
+    saldo>=0?'Disponível agora 💰':'Atenção: gastos acima da renda ⚠️';
 
   // 4 cards
-  document.getElementById('v-ja-pago').textContent=fmt(totPago+totOutros+totCC);
+  document.getElementById('v-ja-pago').textContent=fmt(totPago+totOutros+ajuste);
   document.getElementById('v-a-pagar').textContent=fmt(totPendente);
   document.getElementById('v-atrasado').textContent=fmt(totAtrasado);
   document.getElementById('v-fatura-cc').textContent=fmt(totCC);
